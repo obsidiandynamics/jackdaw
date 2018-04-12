@@ -172,7 +172,7 @@ publishing {
   }
 }
 
-def packageDesc = "Simple configuration and testing of Kafka clients"
+def packageDesc = "Simple configuration and mocking of Kafka clients"
 def repoName = "jackdaw"
 bintray {
   user = System.getenv(envUser)

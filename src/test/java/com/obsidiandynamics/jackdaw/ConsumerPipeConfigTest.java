@@ -11,7 +11,7 @@ import com.obsidiandynamics.yconf.*;
 
 public final class ConsumerPipeConfigTest {
   @Test
-  public void testConfig() throws IOException {
+  public void testConfigFile() throws IOException {
     final ConsumerPipeConfig config = new MappingContext()
         .withParser(new SnakeyamlParser())
         .fromStream(ConsumerPipeConfigTest.class.getClassLoader().getResourceAsStream("consumerpipe.conf"))
@@ -20,5 +20,15 @@ public final class ConsumerPipeConfigTest {
     assertEquals(false, config.isAsync());
     assertEquals(16, config.getBacklogBatches());
     Assertions.assertToStringOverride(config);
+  }
+  
+  @Test
+  public void testConfigObject() {
+    final ConsumerPipeConfig config = new ConsumerPipeConfig()
+        .withAsync(true)
+        .withBacklogBatches(10);
+    
+    assertTrue(config.isAsync());
+    assertEquals(10, config.getBacklogBatches());
   }
 }

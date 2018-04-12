@@ -87,10 +87,10 @@ public final class MockKafka<K, V> implements Kafka<K, V> {
           
           @Override public Future<RecordMetadata> send(ProducerRecord<K, V> r, Callback callback) {
             if (closed.get()) throw new IllegalStateException("Cannot send over a closed producer");
-            final RuntimeException generatedRuntime = sendRuntimeExceptionGenerator.get(r);
+            final RuntimeException generatedRuntime = sendRuntimeExceptionGenerator.inspect(r);
             if (generatedRuntime != null) throw generatedRuntime;
             
-            final Exception generatedCallback = sendCallbackExceptionGenerator.get(r);
+            final Exception generatedCallback = sendCallbackExceptionGenerator.inspect(r);
             if (generatedCallback != null) {
               if (callback != null) callback.onCompletion(null, generatedCallback);
               final CompletableFuture<RecordMetadata> f = new CompletableFuture<>();
@@ -191,7 +191,7 @@ public final class MockKafka<K, V> implements Kafka<K, V> {
       }
       
       @Override public void commitAsync(Map<TopicPartition, OffsetAndMetadata> offsets, OffsetCommitCallback callback) {
-        final Exception generated = commitExceptionGenerator.get(offsets);
+        final Exception generated = commitExceptionGenerator.inspect(offsets);
         if (generated != null) {
           if (callback != null) callback.onComplete(offsets, generated);
         } else {
