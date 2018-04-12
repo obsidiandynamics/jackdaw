@@ -10,6 +10,7 @@ import org.apache.kafka.clients.producer.*;
 import org.apache.kafka.common.*;
 
 import com.obsidiandynamics.func.*;
+import com.obsidiandynamics.props.*;
 import com.obsidiandynamics.yconf.*;
 import com.obsidiandynamics.zerolog.*;
 
@@ -72,9 +73,7 @@ public final class MockKafka<K, V> implements Kafka<K, V> {
 
   @Override
   public FallibleMockProducer<K, V> getProducer(Properties defaults, Properties overrides) {
-    final Properties combined = new Properties();
-    combined.putAll(defaults);
-    combined.putAll(overrides);
+    final Properties combined = Props.merge(defaults, overrides);
     synchronized (lock) {
       if (producer == null) {
         final String keySerializer = combined.getProperty("key.serializer");
@@ -164,9 +163,7 @@ public final class MockKafka<K, V> implements Kafka<K, V> {
 
   @Override
   public FallibleMockConsumer<K, V> getConsumer(Properties defaults, Properties overrides) {
-    final Properties combined = new Properties();
-    combined.putAll(defaults);
-    combined.putAll(overrides);
+    final Properties combined = Props.merge(defaults, overrides);
     final String groupId = combined.getProperty("group.id");
     final boolean newGroupMember = groupId == null || groups.add(groupId);
     if (newGroupMember) {
