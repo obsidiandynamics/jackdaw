@@ -29,8 +29,8 @@ public final class MockKafkaTest {
   private final Timesert wait = Timesert.wait(10_000);
   
   @Test
-  public void test() throws InterruptedException {
-    test(10, 3, 0, 5);
+  public void testProduceConsume() throws InterruptedException {
+    testProduceConsume(10, 3, 0, 5);
   }
   
   private static final class TestConsumer<K, V> extends Thread {
@@ -63,7 +63,7 @@ public final class MockKafkaTest {
     }
   }
 
-  private void test(int messages, int partitions, int sendIntervalMillis, int numConsumers) throws InterruptedException {
+  private void testProduceConsume(int messages, int partitions, int sendIntervalMillis, int numConsumers) throws InterruptedException {
     final int maxHistory = messages * partitions;
     final MockKafka<Integer, Integer> kafka = new MockKafka<>(partitions, maxHistory);
     final Properties props = new Properties();
@@ -121,5 +121,19 @@ public final class MockKafkaTest {
     for (TestConsumer<?, ?> consumer : consumers) {
       consumer.join();
     }
+  }
+  
+  @Test
+  public void testSingletonProducer() {
+    final MockKafka<Integer, String> kafka = new MockKafka<>(1, 1);
+    final Properties props = new Properties();
+    props.put("key.serializer", IntegerSerializer.class.getName());
+    props.put("value.serializer", StringSerializer.class.getName());
+    
+    final Producer<Integer, String> p0 = kafka.getProducer(props);
+    assertNotNull(p0);
+    
+    final Producer<Integer, String> p1 = kafka.getProducer(props);
+    assertSame(p0, p1);
   }
 }
