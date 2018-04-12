@@ -5,7 +5,7 @@ apply plugin: "maven-publish"
 apply plugin: "com.jfrog.bintray"
 
 group = "com.obsidiandynamics.jackdaw"
-version = "0.1.0"
+version = "0.2.0-SNAPSHOT"
   
 def envUser = "BINTRAY_USER"
 def envKey = "BINTRAY_KEY"
@@ -39,9 +39,11 @@ allprojects {
   ext {
     fulcrumVersion = "0.13.0"
     yconfVersion = "0.3.0"
+    zerologVersion = "0.5.0"
   }
   
   dependencies {
+    testCompile "com.obsidiandynamics.fulcrum:fulcrum-junit:${fulcrumVersion}"
     testCompile "junit:junit:4.12"
     testCompile "org.mockito:mockito-core:2.18.0"
   }
@@ -116,8 +118,15 @@ task jacocoRootReport(type: JacocoReport) {
 def packageName = "jackdaw-core"
 
 dependencies {
+  compile "com.obsidiandynamics.fulcrum:fulcrum-await:${fulcrumVersion}"
+  compile "com.obsidiandynamics.fulcrum:fulcrum-docker-compose:${fulcrumVersion}"
+  compile "com.obsidiandynamics.fulcrum:fulcrum-node-queue:${fulcrumVersion}"
   compile "com.obsidiandynamics.fulcrum:fulcrum-props:${fulcrumVersion}"
+  compile "com.obsidiandynamics.fulcrum:fulcrum-retry:${fulcrumVersion}"
+  compile "com.obsidiandynamics.fulcrum:fulcrum-worker:${fulcrumVersion}"
   compile "com.obsidiandynamics.yconf:yconf-core:${yconfVersion}"
+  compile "com.obsidiandynamics.zerolog:zerolog-core:${zerologVersion}"
+  compile "org.apache.kafka:kafka-clients:0.11.0.2"
   
   testCompile "com.obsidiandynamics.yconf:yconf-snakeyaml:${yconfVersion}"
 }
