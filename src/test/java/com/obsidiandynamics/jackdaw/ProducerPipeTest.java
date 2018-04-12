@@ -12,6 +12,7 @@ import org.junit.*;
 import org.slf4j.*;
 
 import com.obsidiandynamics.await.*;
+import com.obsidiandynamics.jackdaw.SerdeProps.*;
 import com.obsidiandynamics.threads.*;
 
 public final class ProducerPipeTest {
@@ -28,7 +29,8 @@ public final class ProducerPipeTest {
   public void testSendDisposedAsync() {
     final Logger log = mock(Logger.class);
     final Kafka<String, String> kafka = new MockKafka<>();
-    final Producer<String, String> producer = kafka.getProducer(TestProps.producer());
+    final SerdeProps props = new SerdeProps(SerdePair.STRING);
+    final Producer<String, String> producer = kafka.getProducer(props.producer());
     pipe = new ProducerPipe<>(new ProducerPipeConfig().withAsync(true), producer, ProducerPipe.class.getSimpleName(), log);
 
     pipe.closeProducer();
@@ -44,10 +46,11 @@ public final class ProducerPipeTest {
   public void testSendAsync() {
     final Logger log = mock(Logger.class);
     final Kafka<String, String> kafka = new MockKafka<>();
-    final Producer<String, String> producer = kafka.getProducer(TestProps.producer());
+    final SerdeProps props = new SerdeProps(SerdePair.STRING);
+    final Producer<String, String> producer = kafka.getProducer(props.producer());
     pipe = new ProducerPipe<>(new ProducerPipeConfig().withAsync(true), producer, ProducerPipe.class.getSimpleName(), log);
 
-    final Consumer<String, String> consumer = kafka.getConsumer(TestProps.consumer());
+    final Consumer<String, String> consumer = kafka.getConsumer(props.consumer());
     consumer.subscribe(Arrays.asList("test"));
     final String msg = "B100";
     final ProducerRecord<String, String> rec = new ProducerRecord<>("test", msg);
@@ -63,10 +66,11 @@ public final class ProducerPipeTest {
   public void testSendSync() {
     final Logger log = mock(Logger.class);
     final Kafka<String, String> kafka = new MockKafka<>();
-    final Producer<String, String> producer = kafka.getProducer(TestProps.producer());
+    final SerdeProps props = new SerdeProps(SerdePair.STRING);
+    final Producer<String, String> producer = kafka.getProducer(props.producer());
     pipe = new ProducerPipe<>(new ProducerPipeConfig().withAsync(false), producer, ProducerPipe.class.getSimpleName(), log);
 
-    final Consumer<String, String> consumer = kafka.getConsumer(TestProps.consumer());
+    final Consumer<String, String> consumer = kafka.getConsumer(props.consumer());
     consumer.subscribe(Arrays.asList("test"));
     final String msg = "B100";
     final ProducerRecord<String, String> rec = new ProducerRecord<>("test", msg);
@@ -82,7 +86,8 @@ public final class ProducerPipeTest {
     final Logger log = mock(Logger.class);
     final Kafka<String, String> kafka = new MockKafka<String, String>()
         .withSendRuntimeExceptionGenerator(r -> new RuntimeException("testSendError"));
-    final Producer<String, String> producer = kafka.getProducer(TestProps.producer());
+    final SerdeProps props = new SerdeProps(SerdePair.STRING);
+    final Producer<String, String> producer = kafka.getProducer(props.producer());
     pipe = new ProducerPipe<>(new ProducerPipeConfig().withAsync(false), producer, ProducerPipe.class.getSimpleName(), log);
 
     final String msg = "B100";

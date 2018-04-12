@@ -117,11 +117,16 @@ public final class MockKafka<K, V> implements Kafka<K, V> {
     return producer;
   }
   
+  static final class InvalidPartitionException extends IllegalArgumentException {
+    private static final long serialVersionUID = 1L;
+    InvalidPartitionException(String m) { super(m); }
+  }
+  
   private void enqueue(ProducerRecord<K, V> r, int partition, long offset) {
     if (partition >= maxPartitions) {
-      final IllegalStateException e = new IllegalStateException(String.format("Cannot send message on partition %d, "
-          + "a maximum of %d partitions are supported", partition, maxPartitions));
-      throw e;
+      final String m = String.format("Cannot send message on partition %d, "
+          + "a maximum of %d partitions are supported", partition, maxPartitions);
+      throw new InvalidPartitionException(m);
     }
     
     final ConsumerRecord<K, V> cr = 
@@ -131,23 +136,21 @@ public final class MockKafka<K, V> implements Kafka<K, V> {
     synchronized (lock) {
       backlog.add(cr);
       for (MockConsumer<K, V> consumer : consumers) {
-        if (! consumer.closed()) {
-          if (consumer.assignment().contains(part)) {
-            consumer.addRecord(cr);
-          }
+        if (consumer.assignment().contains(part)) {
+          consumer.addRecord(cr);
         }
       }
       
       if (producer.history().size() > maxHistory) {
         producer.clear();
-        pruneBacklog();
+        backlog = backlog.subList(backlog.size() - maxHistory, backlog.size());
       }
     }
   }
   
-  private void pruneBacklog() {
-    if (backlog.size() > maxHistory) {
-      backlog = backlog.subList(backlog.size() - maxHistory, backlog.size());
+  public List<ConsumerRecord<K, V>> getBacklog() {
+    synchronized (lock) {
+      return Collections.unmodifiableList(new ArrayList<>(backlog));
     }
   }
 
@@ -206,14 +209,12 @@ public final class MockKafka<K, V> implements Kafka<K, V> {
             
             for (int partIdx = 0; partIdx < maxPartitions; partIdx++) {
               final TopicPartition part = new TopicPartition(topic, partIdx);
-              if (! assignment().contains(part)) {
-                partitions.add(part);
-                offsetRecords.put(part, 0L);
-                
-                for (ConsumerRecord<K, V> cr : backlog) {
-                  if (cr.topic().equals(topic) && cr.partition() == partIdx) {
-                    records.add(cr);
-                  }
+              partitions.add(part);
+              offsetRecords.put(part, 0L);
+              
+              for (ConsumerRecord<K, V> cr : backlog) {
+                if (cr.topic().equals(topic) && cr.partition() == partIdx) {
+                  records.add(cr);
                 }
               }
             }
@@ -228,24 +229,19 @@ public final class MockKafka<K, V> implements Kafka<K, V> {
       }
       
       @Override public List<PartitionInfo> partitionsFor(String topic) {
-        final List<PartitionInfo> superInfos = super.partitionsFor(topic);
-        if (superInfos != null) {
-          return superInfos;
-        } else {
-          final List<PartitionInfo> newInfos = new ArrayList<>(maxPartitions);
-          final Map<TopicPartition, Long> offsets = new HashMap<>(maxPartitions);
-          
-          for (int i = 0; i < maxPartitions; i++) {
-            newInfos.add(new PartitionInfo(topic, i, null, new Node[0], new Node[0]));
-            offsets.put(new TopicPartition(topic, i), 0L);
-          }
-          
-          synchronized (lock) {
-            updateBeginningOffsets(offsets);
-            updateEndOffsets(offsets);
-          }
-          return newInfos;
+        final List<PartitionInfo> newInfos = new ArrayList<>(maxPartitions);
+        final Map<TopicPartition, Long> offsets = new HashMap<>(maxPartitions);
+        
+        for (int i = 0; i < maxPartitions; i++) {
+          newInfos.add(new PartitionInfo(topic, i, null, new Node[0], new Node[0]));
+          offsets.put(new TopicPartition(topic, i), 0L);
         }
+        
+        synchronized (lock) {
+          updateBeginningOffsets(offsets);
+          updateEndOffsets(offsets);
+        }
+        return newInfos;
       }
       
       @Override public ConsumerRecords<K, V> poll(long timeout) {
@@ -273,6 +269,13 @@ public final class MockKafka<K, V> implements Kafka<K, V> {
           }
         }
       }
+      
+      @Override public void close() {
+        synchronized (lock) {
+          consumers.remove(this);
+        }
+        super.close();
+      }
     };
     
     synchronized (lock) {
@@ -281,14 +284,9 @@ public final class MockKafka<K, V> implements Kafka<K, V> {
     return consumer;
   }
   
-  @SuppressWarnings("unchecked")
   private static <T> T instantiate(String className) {
-    try {
-      final Class<?> cls = Class.forName(className);
-      return (T) cls.getDeclaredConstructor().newInstance();
-    } catch (Exception e) {
-      throw new RuntimeException(e);
-    }
+    return Exceptions.wrap(() -> Classes.cast(Class.forName(className).getDeclaredConstructor().newInstance()),
+                           RuntimeException::new);
   }
 
   @Override

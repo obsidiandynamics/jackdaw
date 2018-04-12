@@ -1,6 +1,8 @@
 package com.obsidiandynamics.jackdaw;
 
 import static junit.framework.TestCase.*;
+import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.Mockito.*;
 
 import java.util.*;
 import java.util.concurrent.*;
@@ -8,14 +10,21 @@ import java.util.concurrent.atomic.*;
 
 import org.apache.kafka.clients.consumer.*;
 import org.apache.kafka.clients.producer.*;
-import org.apache.kafka.common.serialization.*;
+import org.apache.kafka.common.*;
 import org.junit.*;
 import org.junit.runner.*;
 import org.junit.runners.*;
+import org.mockito.*;
 
+import com.obsidiandynamics.assertion.*;
 import com.obsidiandynamics.await.*;
+import com.obsidiandynamics.func.*;
+import com.obsidiandynamics.jackdaw.MockKafka.*;
+import com.obsidiandynamics.jackdaw.SerdeProps.*;
 import com.obsidiandynamics.junit.*;
 import com.obsidiandynamics.threads.*;
+import com.obsidiandynamics.worker.*;
+import com.obsidiandynamics.worker.Terminator;
 
 @RunWith(Parameterized.class)
 public final class MockKafkaTest {  
@@ -28,48 +37,64 @@ public final class MockKafkaTest {
   
   private final Timesert wait = Timesert.wait(10_000);
   
+  private final List<Terminable> terminables = new ArrayList<>();
+  
+  @After
+  public void after() {
+    Terminator.of(terminables).terminate().joinSilently();
+    terminables.clear();
+  }
+  
   @Test
   public void testProduceConsume() throws InterruptedException {
     testProduceConsume(10, 3, 0, 5);
   }
   
-  private static final class TestConsumer<K, V> extends Thread {
+  private static final class TestConsumer<K, V> implements Terminable {
     private final Kafka<K, V> kafka;
+    
+    private final WorkerThread thread;
+    
+    private Consumer<K, V> consumer; 
     
     final KeyedBlockingQueue<Integer, ConsumerRecord<K, V>> received = 
         new KeyedBlockingQueue<>(LinkedBlockingQueue::new);
     
-    private volatile boolean running = true;
-    
-    TestConsumer(Kafka<K, V> kafka, int id) {
-      super("TestConsumer-" + id);
+    TestConsumer(Kafka<K, V> kafka) {
       this.kafka = kafka;
-      start();
+      thread = WorkerThread.builder()
+          .withOptions(new WorkerOptions().daemon().withName(TestConsumer.class))
+          .onStartup(this::startup)
+          .onCycle(this::run)
+          .onShutdown(this::shutdown)
+          .buildAndStart();
     }
     
-    @Override public void run() {
-      final Consumer<K, V> consumer = kafka.getConsumer(new Properties());
+    private void startup(WorkerThread t) {
+      consumer = kafka.getConsumer(new Properties());
       consumer.subscribe(Arrays.asList(TOPIC));
-      while (running) {
-        final ConsumerRecords<K, V> records = consumer.poll(1);
-        records.forEach(r -> received.forKey(r.partition()).add(r));
-      }
+    }
+    
+    private void run(WorkerThread t) {
+      final ConsumerRecords<K, V> records = consumer.poll(1);
+      records.forEach(r -> received.forKey(r.partition()).add(r));
+    }
+    
+    private void shutdown(WorkerThread t, Throwable exception) {
       consumer.close();
     }
     
-    void terminate() throws InterruptedException {
-      running = false;
-      interrupt();
+    @Override
+    public Joinable terminate() {
+      return thread.terminate();
     }
   }
 
   private void testProduceConsume(int messages, int partitions, int sendIntervalMillis, int numConsumers) throws InterruptedException {
     final int maxHistory = messages * partitions;
     final MockKafka<Integer, Integer> kafka = new MockKafka<>(partitions, maxHistory);
-    final Properties props = new Properties();
-    props.put("key.serializer", IntegerSerializer.class.getName());
-    props.put("value.serializer", IntegerSerializer.class.getName());
-    final MockProducer<Integer, Integer> producer = kafka.getProducer(props);
+    final SerdeProps props = new SerdeProps(SerdePair.INTEGER);
+    final MockProducer<Integer, Integer> producer = kafka.getProducer(props.producer());
     final List<TestConsumer<Integer, Integer>> consumers = new ArrayList<>(numConsumers);
     
     final AtomicInteger sent = new AtomicInteger();
@@ -79,7 +104,7 @@ public final class MockKafkaTest {
       }
       
       if (consumers.size() < numConsumers) {
-        consumers.add(new TestConsumer<>(kafka, consumers.size()));
+        consumers.add(new TestConsumer<>(kafka));
       }
       
       if (m != messages - 1 && sendIntervalMillis != 0) {
@@ -91,8 +116,9 @@ public final class MockKafkaTest {
     assertEquals(expectedMessages, sent.get());
     
     while (consumers.size() < numConsumers) {
-      consumers.add(new TestConsumer<>(kafka, consumers.size()));
+      consumers.add(new TestConsumer<>(kafka));
     }
+    terminables.addAll(consumers);
     
     try {
       wait.untilTrue(() -> consumers.stream().filter(c -> c.received.totalSize() < expectedMessages).count() == 0);
@@ -114,26 +140,242 @@ public final class MockKafkaTest {
     
     assertTrue("history.size=" + producer.history().size(), producer.history().size() <= maxHistory);
     
-    for (TestConsumer<?, ?> consumer : consumers) {
-      consumer.terminate();
-    }
     producer.close();
-    for (TestConsumer<?, ?> consumer : consumers) {
-      consumer.join();
-    }
   }
   
   @Test
   public void testSingletonProducer() {
-    final MockKafka<Integer, String> kafka = new MockKafka<>(1, 1);
-    final Properties props = new Properties();
-    props.put("key.serializer", IntegerSerializer.class.getName());
-    props.put("value.serializer", StringSerializer.class.getName());
+    final MockKafka<String, String> kafka = new MockKafka<>(1, 1);
+    final SerdeProps props = new SerdeProps(SerdePair.STRING);
     
-    final Producer<Integer, String> p0 = kafka.getProducer(props);
+    final Producer<String, String> p0 = kafka.getProducer(props.producer());
     assertNotNull(p0);
     
-    final Producer<Integer, String> p1 = kafka.getProducer(props);
+    final Producer<String, String> p1 = kafka.getProducer(props.producer());
     assertSame(p0, p1);
+  }
+  
+  private static class TestRuntimeException extends RuntimeException {
+    private static final long serialVersionUID = 1L;
+  }
+  
+  @Test
+  public void testDescribeProducer() {
+    final LogLine logLine = mock(LogLine.class, Answers.CALLS_REAL_METHODS);
+    new MockKafka<String, String>(1, 1).describeProducer(logLine, new Properties(), new Properties());
+    verify(logLine).accept(notNull());
+  }
+  
+  @Test(expected=TestRuntimeException.class)
+  public void testSendWithRuntimeError() {
+    final TestRuntimeException cause = new TestRuntimeException();
+    final MockKafka<String, String> kafka = new MockKafka<String, String>(1, 1)
+        .withSendRuntimeExceptionGenerator(__ -> cause);
+    final SerdeProps props = new SerdeProps(SerdePair.STRING);
+    final Producer<String, String> producer = kafka.getProducer(props.producer());
+    producer.send(new ProducerRecord<>("topic", "value"));
+  }
+  
+  @Test
+  public void testSendWithCallbackError() throws InterruptedException {
+    final Exception cause = new Exception("simulated");
+    final MockKafka<String, String> kafka = new MockKafka<String, String>(1, 1)
+        .withSendCallbackExceptionGenerator(__ -> cause);
+    final SerdeProps props = new SerdeProps(SerdePair.STRING);
+    final Producer<String, String> producer = kafka.getProducer(props.producer());
+    final Callback callback = mock(Callback.class);
+    final Future<RecordMetadata> f = producer.send(new ProducerRecord<>("topic", "value"), callback);
+    assertTrue(f.isDone());
+    try {
+      f.get();
+      fail("expected exception");
+    } catch (ExecutionException e) {
+      assertEquals(cause, e.getCause());
+    }
+    
+    verify(callback).onCompletion(any(), eq(cause));
+  }
+  
+  @Test
+  public void testSendWithCallbackErrorWithoutCallback() throws InterruptedException {
+    final Exception cause = new Exception("simulated");
+    final MockKafka<String, String> kafka = new MockKafka<String, String>(1, 1)
+        .withSendCallbackExceptionGenerator(__ -> cause);
+    final SerdeProps props = new SerdeProps(SerdePair.STRING);
+    final Producer<String, String> producer = kafka.getProducer(props.producer());
+    final Future<RecordMetadata> f = producer.send(new ProducerRecord<>("topic", "value"));
+    assertTrue(f.isDone());
+    try {
+      f.get();
+      fail("expected exception");
+    } catch (ExecutionException e) {
+      assertEquals(cause, e.getCause());
+    }
+  }
+  
+  @Test(expected=IllegalStateException.class)
+  public void testSendClosedProducer() {
+    final TestRuntimeException cause = new TestRuntimeException();
+    final MockKafka<String, String> kafka = new MockKafka<String, String>(1, 1)
+        .withSendRuntimeExceptionGenerator(__ -> cause);
+    final SerdeProps props = new SerdeProps(SerdePair.STRING);
+    final Producer<String, String> producer = kafka.getProducer(props.producer());
+    producer.close();
+    producer.send(new ProducerRecord<>("topic", "value"));
+  }
+  
+  @Test(expected=InvalidPartitionException.class)
+  public void testSendInvalidPartition() {
+    final MockKafka<String, String> kafka = new MockKafka<>(1, 1);
+    final SerdeProps props = new SerdeProps(SerdePair.STRING);
+    final Producer<String, String> producer = kafka.getProducer(props.producer());
+    producer.send(new ProducerRecord<>("topic", 1, "key", "value"));
+  }
+  
+  @Test
+  public void testSendClearBacklog() {
+    final int maxHistory = 1;
+    final MockKafka<String, String> kafka = new MockKafka<>(1, maxHistory);
+    final SerdeProps props = new SerdeProps(SerdePair.STRING);
+    final Producer<String, String> producer = kafka.getProducer(props.producer());
+    for (int i = 0; i < maxHistory + 1; i++) {
+      producer.send(new ProducerRecord<>("topic", 0, "key", "value"));
+    }
+    assertEquals(maxHistory, kafka.getBacklog().size());
+  }
+  
+  /**
+   *  Tests attached/detached consumers in a group; we should be able receive on 
+   *  an attached consumer (the first one), but not a detached one (all others).
+   */
+  @Test
+  public void testConsumeFromGroup() {
+    final MockKafka<String, String> kafka = new MockKafka<>(1, 1);
+    final SerdeProps props = new SerdeProps(SerdePair.STRING);
+    final Producer<String, String> producer = kafka.getProducer(props.producer());
+    
+    final Properties consumerProps = new Properties();
+    consumerProps.putAll(props.consumer());
+    consumerProps.put("group.id", "group");
+    
+    final Consumer<String, String> attached = kafka.getConsumer(consumerProps);
+    attached.subscribe(Arrays.asList("topic"));
+    
+    final Consumer<String, String> detached = kafka.getConsumer(consumerProps);
+    detached.subscribe(Arrays.asList("topic"));
+    
+    producer.send(new ProducerRecord<>("topic", 0, "key", "value"));
+    wait.until(() -> assertEquals(1, attached.poll(1).count()));
+    
+    Threads.sleep(10);
+    assertEquals(0, detached.poll(1).count());
+  }
+  
+  /**
+   *  Tests that a consumer subscribing twice to the same topic doesn't result in
+   *  message duplication.
+   */
+  @Test
+  public void testConsumeSubscribedTwice() {
+    final MockKafka<String, String> kafka = new MockKafka<>(2, 1);
+    final SerdeProps props = new SerdeProps(SerdePair.STRING);
+    final Producer<String, String> producer = kafka.getProducer(props.producer());
+    
+    final Consumer<String, String> attached = kafka.getConsumer(props.consumer());
+    attached.subscribe(Arrays.asList("topic"));
+    attached.subscribe(Arrays.asList("topic"));
+    
+    producer.send(new ProducerRecord<>("topic", 0, "key", "value"));
+    wait.until(() -> assertEquals(1, attached.poll(1).count()));
+  }
+
+  /**
+   *  Tests consumption of messages from a topic different from that of the publisher.
+   */
+  @Test
+  public void testConsumeWrongTopic() {
+    final MockKafka<String, String> kafka = new MockKafka<>(2, 1);
+    final SerdeProps props = new SerdeProps(SerdePair.STRING);
+    final Producer<String, String> producer = kafka.getProducer(props.producer());
+    
+    producer.send(new ProducerRecord<>("topic", 0, "key", "value"));
+    
+    final Consumer<String, String> consumer = kafka.getConsumer(props.consumer());
+    consumer.subscribe(Arrays.asList("different"));
+    Threads.sleep(10);
+    assertEquals(0, consumer.poll(1).count());
+  }
+
+  @Test
+  public void testPartitionsForExistingTopic() {
+    final MockKafka<String, String> kafka = new MockKafka<>(1, 1);
+    final SerdeProps props = new SerdeProps(SerdePair.STRING);
+    
+    final Producer<String, String> producer = kafka.getProducer(props.producer());
+    producer.send(new ProducerRecord<>("topic", 0, "key", "value"));
+    
+    final Consumer<String, String> consumer = kafka.getConsumer(props.consumer());
+    final List<PartitionInfo> partitions = consumer.partitionsFor("topic");
+    assertEquals(1, partitions.size());
+  }
+
+  @Test
+  public void testPartitionsForNonExistentTopic() {
+    final MockKafka<String, String> kafka = new MockKafka<>(1, 1);
+    final SerdeProps props = new SerdeProps(SerdePair.STRING);
+    
+    final Consumer<String, String> consumer = kafka.getConsumer(props.consumer());
+    final List<PartitionInfo> partitions = consumer.partitionsFor("topic");
+    assertEquals(1, partitions.size());
+  }
+  
+  @Test
+  public void testCommitAsync() {
+    final MockKafka<String, String> kafka = new MockKafka<>(1, 1);
+    final SerdeProps props = new SerdeProps(SerdePair.STRING);
+    
+    final Consumer<String, String> consumer = kafka.getConsumer(props.consumer());
+    final Map<TopicPartition, OffsetAndMetadata> offsets = new HashMap<>();
+    final OffsetCommitCallback callback = mock(OffsetCommitCallback.class);
+    consumer.commitAsync(offsets, callback);
+    wait.until(() -> verify(callback).onComplete(notNull(), isNull()));
+  }
+  
+  @Test
+  public void testCommitAsyncWithError() {
+    final Exception cause = new Exception("simulated");
+    final MockKafka<String, String> kafka = new MockKafka<String, String>(1, 1)
+        .withCommitExceptionGenerator(__ -> cause);
+    final SerdeProps props = new SerdeProps(SerdePair.STRING);
+    
+    final Consumer<String, String> consumer = kafka.getConsumer(props.consumer());
+    final Map<TopicPartition, OffsetAndMetadata> offsets = new HashMap<>();
+    final OffsetCommitCallback callback = mock(OffsetCommitCallback.class);
+    consumer.commitAsync(offsets, callback);
+    wait.until(() -> verify(callback).onComplete(notNull(), eq(cause)));
+  }
+  
+  @Test
+  public void testCommitAsyncWithErrorNoCallback() {
+    final Exception cause = new Exception("simulated");
+    final MockKafka<String, String> kafka = new MockKafka<String, String>(1, 1)
+        .withCommitExceptionGenerator(__ -> cause);
+    final SerdeProps props = new SerdeProps(SerdePair.STRING);
+    
+    final Consumer<String, String> consumer = kafka.getConsumer(props.consumer());
+    final Map<TopicPartition, OffsetAndMetadata> offsets = new HashMap<>();
+    consumer.commitAsync(offsets, null);
+  }
+  
+  @Test
+  public void testDescribeConsumer() {
+    final LogLine logLine = mock(LogLine.class, Answers.CALLS_REAL_METHODS);
+    new MockKafka<String, String>(1, 1).describeConsumer(logLine, new Properties(), new Properties());
+    verify(logLine).accept(notNull());
+  }
+  
+  @Test
+  public void testToString() {
+    Assertions.assertToStringOverride(new MockKafka<>(1, 1));
   }
 }
