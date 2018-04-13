@@ -21,7 +21,7 @@ import com.obsidiandynamics.zerolog.*;
 public final class KafkaDockerTest {
   @Parameterized.Parameters
   public static List<Object[]> data() {
-    return TestCycle.timesQuietly(1000);
+    return TestCycle.timesQuietly(1);
   }
   
   private ServerSocket socket;
