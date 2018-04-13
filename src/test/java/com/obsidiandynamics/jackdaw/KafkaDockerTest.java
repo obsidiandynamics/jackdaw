@@ -60,16 +60,9 @@ public final class KafkaDockerTest {
   
   @Test
   public void testIsRemotePortListeningNo() {
-    final int attempts = 3; // in case of interference concurrently running tests
-    for (int i = 0; i < attempts; i++) {
-      final int sparePort = getSparePort();
-      final boolean isRunning = new KafkaDocker().withPort(sparePort).isRunning();
-      if (! isRunning) {
-        return; // end of test -- one closed port has been found
-      }
-    }
-    
-    fail("Failed to detect a spare port");
+    final int sparePort = getSparePort();
+    final boolean isRunning = new KafkaDocker().withPort(sparePort).isRunning();
+    assertFalse(isRunning);
   }
   
   @Test
@@ -94,7 +87,6 @@ public final class KafkaDockerTest {
   public void testStartNewBroker() throws Exception {
     final int sparePort = getSparePort();
     final MockLogTarget target = new MockLogTarget();
-    final Shell shell = new NullShell();
     final ProcessExecutor executor = mock(ProcessExecutor.class);
     final Process process = mock(Process.class);
     when(executor.run(any())).thenReturn(process);
@@ -108,7 +100,7 @@ public final class KafkaDockerTest {
         .withLog(target.logger())
         .withPort(sparePort)
         .withExecutor(executor)
-        .withShell(shell)
+        .withShell(new NullShell())
         .withBrokerAwaitMillis(1000)
         .withSink(sink);
     kd.start();
@@ -140,7 +132,6 @@ public final class KafkaDockerTest {
   public void testStopExistingBroker() throws Exception {
     socket = randomSocket();
     final MockLogTarget target = new MockLogTarget();
-    final Shell shell = new NullShell();
     final ProcessExecutor executor = mock(ProcessExecutor.class);
     final Process process = mock(Process.class);
     when(executor.run(any())).thenReturn(process);
@@ -154,7 +145,7 @@ public final class KafkaDockerTest {
         .withLog(target.logger())
         .withPort(socket.getLocalPort())
         .withExecutor(executor)
-        .withShell(shell)
+        .withShell(new NullShell())
         .withBrokerAwaitMillis(1000)
         .withSink(sink);
     kd.stop();
