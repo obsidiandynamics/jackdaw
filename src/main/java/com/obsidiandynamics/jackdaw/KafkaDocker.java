@@ -11,62 +11,123 @@ import com.obsidiandynamics.threads.*;
 import com.obsidiandynamics.zerolog.*;
 
 public final class KafkaDocker {
-  private static final Zlg zlg = Zlg.forClass(MethodHandles.lookup().lookupClass()).get();
+  private Zlg zlg = Zlg.forClass(MethodHandles.lookup().lookupClass()).get();
   
-  private static final String PROJECT = "jackdaw";
-  private static final String PATH = "/usr/local/bin";
-  private static final int BROKER_AWAIT_MILLIS = 600_000;
+  private String project = "jackdaw";
   
-  private static final DockerCompose COMPOSE = new DockerCompose()
-      .withShell(new BourneShell().withPath(PATH))
-      .withProject(PROJECT)
-      .withEcho(true)
-      .withSink(System.out::print)
-      .withComposeFile("stack/docker-compose.yaml");
+  private String composeFile = "stack/docker-compose.yaml";
   
-  private KafkaDocker() {}
+  private Shell shell = new BourneShell().withPath("/usr/local/bin");
   
-  public static boolean isRunning() {
-    return isRemotePortListening("localhost", 9092);
+  private ProcessExecutor executor;
+  
+  private Sink sink = System.out::print;
+  
+  private int brokerAwaitMillis = 600_000;
+  
+  private int port = 9092;
+  
+  public KafkaDocker withLog(Zlg zlg) {
+    this.zlg = zlg;
+    return this;
+  }
+  
+  public KafkaDocker withProject(String project) {
+    this.project = project;
+    return this;
+  }
+
+  public KafkaDocker withComposeFile(String composeFile) {
+    this.composeFile = composeFile;
+    return this;
+  }
+  
+  public KafkaDocker withShell(Shell shell) {
+    this.shell = shell;
+    return this;
+  }
+  
+  public KafkaDocker withExecutor(ProcessExecutor executor) {
+    this.executor = executor;
+    return this;
+  }
+  
+  public KafkaDocker withSink(Sink sink) {
+    this.sink = sink;
+    return this;
+  }
+
+  public KafkaDocker withBrokerAwaitMillis(int brokerAwaitMillis) {
+    this.brokerAwaitMillis = brokerAwaitMillis;
+    return this;
+  }
+
+  public KafkaDocker withPort(int port) {
+    this.port = port;
+    return this;
+  }
+  
+  private DockerCompose compose = null;
+  
+  private DockerCompose createCompose() {
+    return new DockerCompose()
+        .withShell(shell)
+        .withExecutor(executor)
+        .withProject(project)
+        .withEcho(true)
+        .withSink(sink)
+        .withComposeFile(composeFile);
+  }
+  
+  DockerCompose getCompose() {
+    if (compose == null) {
+      compose = createCompose();
+    }
+    return compose;
+  }
+  
+  public boolean isRunning() {
+    return isRemotePortListening("localhost", port);
   }
   
   private static boolean isRemotePortListening(String host, int port) {
     try (final Socket s = new Socket(host, port)) {
+      s.setReuseAddress(true);
       return true;
     } catch (IOException e) {
       return false;
     }
   }
   
-  public static void start() throws Exception {
-    zlg.i("Starting Kafka stack...").log();
+  public void start() throws Exception {
+    zlg.i("Starting Kafka stack [%s]...", z -> z.arg(composeFile));
     if (isRunning()) {
-      zlg.i("Kafka already running").log();
+      zlg.i("Broker already running [port %d]", z -> z.arg(port));
       return;
     }
 
-    COMPOSE.checkInstalled();
-    final long tookStartMillis = Threads.tookMillis(COMPOSE::up);
-    zlg.i("took %,d ms (now waiting for broker to come up...)").arg(tookStartMillis).log();
-    final long tookAwait = awaitBroker();
-    zlg.i("broker up, waited %,d ms").arg(tookAwait).log();
+    getCompose().checkInstalled();
+    final long containerStartupMillis = Threads.tookMillis(getCompose()::up);
+    zlg.i("Container took %,d ms; now waiting for broker to come up...", z -> z.arg(containerStartupMillis));
+    final long brokerStartupMillis = awaitBroker();
+    zlg.i("Broker up [waited %,d ms]", z -> z.arg(brokerStartupMillis));
   }
   
-  private static long awaitBroker() {
-    return Threads.tookMillis(() -> Timesert.wait(BROKER_AWAIT_MILLIS).untilTrue(KafkaDocker::isRunning));
+  private long awaitBroker() {
+    return Threads.tookMillis(() -> Timesert.wait(brokerAwaitMillis).untilTrue(this::isRunning));
   }
   
-  public static void stop() throws Exception {
-    zlg.i("Stopping Kafka stack...").log();
+  public void stop() throws Exception {
+    zlg.i("Stopping Kafka stack...");
     if (! isRunning()) {
-      zlg.i("Kafka already stopped").log();
+      zlg.i("Broker already stopped");
       return;
     }
     
     final long tookMillis = Threads.tookMillis(() -> {
-      COMPOSE.stop(1);
-      COMPOSE.down(true);
+      getCompose().stop(1);
+      getCompose().down(true);
     });
-    zlg.i("took %,d ms").arg(tookMillis).log();
+    zlg.i("Broker down [waited %,d ms]", z -> z.arg(tookMillis));
   }
 }

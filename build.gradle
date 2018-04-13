@@ -39,7 +39,7 @@ allprojects {
   ext {
     fulcrumVersion = "0.13.0"
     yconfVersion = "0.3.0"
-    zerologVersion = "0.5.0"
+    zerologVersion = "0.7.0"
   }
   
   dependencies {

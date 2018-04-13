@@ -1,4 +1,4 @@
-package com.obsidiandynamics.jackdaw;
+package com.obsidiandynamics.jackdaw.sample;
 
 import static java.util.Collections.*;
 

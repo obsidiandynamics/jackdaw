@@ -1,4 +1,4 @@
-package com.obsidiandynamics.jackdaw;
+package com.obsidiandynamics.jackdaw.sample;
 
 import java.util.*;
 import java.util.concurrent.*;

@@ -1,4 +1,4 @@
-package com.obsidiandynamics.jackdaw;
+package com.obsidiandynamics.jackdaw.sample;
 
 import java.lang.invoke.*;
 import java.text.*;
@@ -8,11 +8,12 @@ import org.apache.kafka.clients.consumer.*;
 import org.apache.kafka.clients.producer.*;
 import org.apache.kafka.common.serialization.*;
 
+import com.obsidiandynamics.jackdaw.*;
 import com.obsidiandynamics.threads.*;
 import com.obsidiandynamics.yconf.props.*;
 import com.obsidiandynamics.zerolog.*;
 
-public final class KafkaSamplePubSub {
+public final class PubSubSample {
   private static final Zlg zlg = Zlg.forClass(MethodHandles.lookup().lookupClass()).get();
   
   private static final boolean MOCK = false;
@@ -55,7 +56,7 @@ public final class KafkaSamplePubSub {
       final String msg = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSZ").format(new Date(now));
       final ProducerRecord<String, String> rec = new ProducerRecord<>(TOPIC, String.valueOf(now), msg);
       producer.send(rec, (metadata, exception) -> {
-        zlg.i("tx [%s], key: %s, value: %s").arg(metadata).arg(rec::key).arg(rec::value).tag("p").log();
+        zlg.i("tx [%s], key: %s, value: %s", z -> z.arg(metadata).arg(rec::key).arg(rec::value).tag("p"));
       });
     }
     
@@ -84,9 +85,8 @@ public final class KafkaSamplePubSub {
     
     private void onReceive(ConsumerRecords<String, String> records) {
       for (ConsumerRecord<String, String> record : records) {
-        zlg.i("rx [%s], key: %s, value: %s")
-        .arg(record, SampleSubscriber::formatMetadata).arg(record::key).arg(record::value)
-        .tag("c").log();
+        zlg.i("rx [%s], key: %s, value: %s", 
+              z -> z.arg(record, SampleSubscriber::formatMetadata).arg(record::key).arg(record::value).tag("c"));
       }
     }
     
@@ -96,7 +96,7 @@ public final class KafkaSamplePubSub {
     
     
     private void onError(Throwable cause) {
-      zlg.e("exception: %s").arg(cause).tag("c").log();
+      zlg.e("exception: %s", z -> z.arg(cause).tag("c"));
     }
     
     void close() {

@@ -290,10 +290,30 @@ public final class MockKafkaTest {
   }
 
   /**
-   *  Tests consumption of messages from a topic different from that of the publisher.
+   *  Tests consumption of messages from a topic different from that of the publisher. In
+   *  this particular scenario, the consumer subscribes to a topic <em>before</em> messages
+   *  get published (to a different topic).
    */
   @Test
-  public void testConsumeWrongTopic() {
+  public void testConsumeWrongTopicBeforePublish() {
+    final MockKafka<String, String> kafka = new MockKafka<>(2, 1);
+    final SerdeProps props = new SerdeProps(SerdePair.STRING);
+    final Producer<String, String> producer = kafka.getProducer(props.producer());
+    
+    
+    final Consumer<String, String> consumer = kafka.getConsumer(props.consumer());
+    consumer.subscribe(Arrays.asList("different"));
+    producer.send(new ProducerRecord<>("topic", 0, "key", "value"));
+    assertEquals(0, consumer.poll(1).count());
+  }
+
+  /**
+   *  Tests consumption of messages from a topic different from that of the publisher. In
+   *  this particular scenario, the consumer subscribes to a topic <em>after</em> messages
+   *  have been published (to a different topic).
+   */
+  @Test
+  public void testConsumeWrongTopicAfterPublish() {
     final MockKafka<String, String> kafka = new MockKafka<>(2, 1);
     final SerdeProps props = new SerdeProps(SerdePair.STRING);
     final Producer<String, String> producer = kafka.getProducer(props.producer());
@@ -302,7 +322,6 @@ public final class MockKafkaTest {
     
     final Consumer<String, String> consumer = kafka.getConsumer(props.consumer());
     consumer.subscribe(Arrays.asList("different"));
-    Threads.sleep(10);
     assertEquals(0, consumer.poll(1).count());
   }
 
