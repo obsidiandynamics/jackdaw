@@ -13,6 +13,11 @@ import com.obsidiandynamics.threads.*;
 import com.obsidiandynamics.yconf.props.*;
 import com.obsidiandynamics.zerolog.*;
 
+/**
+ *  Demonstrates pub-sub with either {@link KafkaCluster} or {@link MockKafka}.<p>
+ *  
+ *  The subscriber is asynchronous, driven by a {@link KafkaReceiver}.
+ */
 public final class PubSubSample {
   private static final Zlg zlg = Zlg.forClass(MethodHandles.lookup().lookupClass()).get();
   
@@ -20,33 +25,33 @@ public final class PubSubSample {
   private static final String BROKERS = "localhost:9092";
   private static final String TOPIC = "test";
   private static final String CONSUMER_GROUP = "test";
-  private static final long PUBLISH_INTERVAL = 100;
-  private static final Kafka<String, String> KAFKA = MOCK 
+  private static final long PUBLISH_INTERVAL_MILLIS = 100;
+  
+  private static final Kafka<String, String> kafka = MOCK 
       ? new MockKafka<>() 
-      : new KafkaCluster<>(new KafkaClusterConfig()
-          .withCommonProps(new PropsBuilder().with("bootstrap.servers", BROKERS).build()));
+      : new KafkaCluster<>(new KafkaClusterConfig().withBootstrapServers(BROKERS));
   
   private static final class SamplePublisher extends Thread {
     private static Properties getProps() {
-      final Properties props = new Properties();
-      props.setProperty("key.serializer", StringSerializer.class.getName());
-      props.setProperty("value.serializer", StringSerializer.class.getName());
-      return props;
+      return new PropsBuilder()
+          .with("key.serializer", StringSerializer.class.getName())
+          .with("value.serializer", StringSerializer.class.getName())
+          .build();
     }
     
     private final Producer<String, String> producer;
     private volatile boolean running = true;
     
     SamplePublisher() {
-      super("Kafka-SamplePublisher");
-      producer = KAFKA.getProducer(getProps());
+      super(SamplePublisher.class.getSimpleName());
+      producer = kafka.getProducer(getProps());
       start();
     }
     
     @Override public void run() {
       while (running) {
         send();
-        if (PUBLISH_INTERVAL != 0) Threads.sleep(PUBLISH_INTERVAL);
+        Threads.sleep(PUBLISH_INTERVAL_MILLIS);
       }
       producer.close();
     }
@@ -56,7 +61,7 @@ public final class PubSubSample {
       final String msg = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSZ").format(new Date(now));
       final ProducerRecord<String, String> rec = new ProducerRecord<>(TOPIC, String.valueOf(now), msg);
       producer.send(rec, (metadata, exception) -> {
-        zlg.i("tx [%s], key: %s, value: %s", z -> z.arg(metadata).arg(rec::key).arg(rec::value).tag("p"));
+        zlg.i("[%s], key: %s, value: %s", z -> z.arg(metadata).arg(rec::key).arg(rec::value).tag("tx"));
       });
     }
     
@@ -67,26 +72,26 @@ public final class PubSubSample {
   
   private static final class SampleSubscriber {
     private static Properties getProps() {
-      final Properties props = new Properties();
-      props.setProperty("group.id", CONSUMER_GROUP);
-      props.setProperty("key.deserializer", StringDeserializer.class.getName());
-      props.setProperty("value.deserializer", StringDeserializer.class.getName());
-      return props;
+      return new PropsBuilder()
+          .with("group.id", CONSUMER_GROUP)
+          .with("key.deserializer", StringDeserializer.class.getName())
+          .with("value.deserializer", StringDeserializer.class.getName())
+          .build();
     }
 
     private final KafkaReceiver<String, String> receiver;
     private final Consumer<String, String> consumer;
     
     SampleSubscriber() {
-      consumer = KAFKA.getConsumer(getProps());
+      consumer = kafka.getConsumer(getProps());
       consumer.subscribe(Arrays.asList(TOPIC));
-      receiver = new KafkaReceiver<>(consumer, 100, "Kafka-SampleSubscriber", this::onReceive, this::onError);
+      receiver = new KafkaReceiver<>(consumer, 100, SampleSubscriber.class.getSimpleName(), this::onReceive, this::onError);
     }
     
     private void onReceive(ConsumerRecords<String, String> records) {
       for (ConsumerRecord<String, String> record : records) {
-        zlg.i("rx [%s], key: %s, value: %s", 
-              z -> z.arg(record, SampleSubscriber::formatMetadata).arg(record::key).arg(record::value).tag("c"));
+        zlg.i("[%s], key: %s, value: %s", 
+              z -> z.arg(record, SampleSubscriber::formatMetadata).arg(record::key).arg(record::value).tag("rx"));
       }
     }
     
@@ -94,9 +99,8 @@ public final class PubSubSample {
       return String.format("%s-%d@%d", rec.topic(), rec.partition(), rec.offset());
     }
     
-    
     private void onError(Throwable cause) {
-      zlg.e("exception: %s", z -> z.arg(cause).tag("c"));
+      zlg.e("receive error: %s", z -> z.arg(cause).tag("rx"));
     }
     
     void close() {

@@ -15,7 +15,7 @@ public final class KafkaDocker {
   
   private String project = "jackdaw";
   
-  private String composeFile = "stack/docker-compose.yaml";
+  private String composeFile = "stack/docker-compose/docker-compose.yaml";
   
   private Shell shell = new BourneShell().withPath("/usr/local/bin");
   

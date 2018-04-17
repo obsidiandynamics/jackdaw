@@ -1,6 +1,6 @@
-Run `docker-compose up` in the directory where `docker-compose.yaml` is kept.
-
-To connect to the machine, run `docker ps` to determine the container ID of confluent/kafka, then run `docker exec -it <container> sh`
+ZooKeeper & Kafka stack
+===
+Choose from either `docker-compose` or `minikube` stacks.
 
 Kafka scripts are located in `/opt/kafka/bin`.
 

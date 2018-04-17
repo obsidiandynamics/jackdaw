@@ -1,0 +1,41 @@
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  annotations:
+    kompose.cmd: kompose convert
+    kompose.service.type: NodePort
+    kompose.version: 1.11.0 ()
+  creationTimestamp: null
+  labels:
+    io.kompose.service: kafka
+  name: kafka
+spec:
+  replicas: 1
+  strategy: {}
+  template:
+    metadata:
+      creationTimestamp: null
+      labels:
+        io.kompose.service: kafka
+    spec:
+      hostAliases:
+      - ip: "127.0.0.1"
+        hostnames:
+        - "kafka.minikube"
+      containers:
+      - env:
+        - name: KAFKA_ADVERTISED_HOST_NAME
+          value: "kafka.minikube"
+        - name: KAFKA_ADVERTISED_PORT
+          value: "30092"
+        - name: KAFKA_PORT
+          value: "30092"
+        - name: KAFKA_ZOOKEEPER_CONNECT
+          value: zookeeper:2181
+        image: wurstmeister/kafka
+        name: kafka
+        ports:
+        - containerPort: 30092
+        resources: {}
+      restartPolicy: Always
+status: {}

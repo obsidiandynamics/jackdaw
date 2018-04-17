@@ -1,0 +1,4 @@
+#!/bin/bash
+
+minikube service zookeeper --url --format "tcp://{{.IP}}:{{.Port}}"
+minikube service kafka --url --format "tcp://{{.IP}}:{{.Port}}"
