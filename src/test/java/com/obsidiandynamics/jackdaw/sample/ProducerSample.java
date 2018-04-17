@@ -1,17 +1,26 @@
 package com.obsidiandynamics.jackdaw.sample;
 
+import java.lang.invoke.*;
 import java.util.*;
 import java.util.concurrent.*;
 
 import org.apache.kafka.clients.producer.*;
 import org.apache.kafka.common.serialization.*;
 
+import com.obsidiandynamics.jackdaw.*;
+import com.obsidiandynamics.threads.*;
 import com.obsidiandynamics.yconf.props.*;
+import com.obsidiandynamics.zerolog.*;
 
-public final class RunKafkaProducer {
+public final class ProducerSample {
+  private static final Zlg zlg = Zlg.forClass(MethodHandles.lookup().lookupClass()).get();
+  
+  private static final String BOOTSTRAP_SERVERS = "localhost:9092";
+  
+  private static Kafka<String, String> kafka = new KafkaCluster<>(new KafkaClusterConfig().withBootstrapServers(BOOTSTRAP_SERVERS));
+  
   public static void main(String[] args) throws InterruptedException, ExecutionException {
     final Properties props = new PropsBuilder()
-        .with("bootstrap.servers", "localhost:9092")
         .with("key.serializer", StringSerializer.class.getName())
         .with("value.serializer", StringSerializer.class.getName())
         .with("acks", "all")
@@ -21,12 +30,12 @@ public final class RunKafkaProducer {
     
     final String topic = "test";
     final int publishIntervalMillis = 100;
-    try (KafkaProducer<String, String> producer = new KafkaProducer<>(props)) {
+    try (Producer<String, String> producer = kafka.getProducer(props)) {
       for (;;) {
         final String value = String.valueOf(System.currentTimeMillis());
         final RecordMetadata metadata = producer.send(new ProducerRecord<>(topic, value)).get();
-        System.out.format("publishing %s, metadata=%s\n", value, metadata);
-        Thread.sleep(publishIntervalMillis);
+        zlg.i("publishing %s, metadata=%s", z -> z.arg(value).arg(metadata));
+        Threads.sleep(publishIntervalMillis);
       }
     }
   }  
