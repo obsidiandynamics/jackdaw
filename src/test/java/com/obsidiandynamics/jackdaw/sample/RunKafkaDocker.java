@@ -5,13 +5,19 @@ import com.obsidiandynamics.jackdaw.*;
 public final class RunKafkaDocker {
   public static final class Start {
     public static void main(String[] args) throws Exception {
-      new KafkaDocker().start();
+      new KafkaDocker()
+      .withProject("jackdaw")
+      .withComposeFile("stack/docker-compose/docker-compose.yaml")
+      .start();
     }
   }
   
   public static final class Stop {
     public static void main(String[] args) throws Exception {
-      new KafkaDocker().stop();
+      new KafkaDocker()
+      .withProject("jackdaw")
+      .withComposeFile("stack/docker-compose/docker-compose.yaml")
+      .stop();
     }
   }
 }

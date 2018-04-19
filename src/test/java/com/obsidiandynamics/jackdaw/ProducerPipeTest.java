@@ -9,9 +9,9 @@ import java.util.*;
 import org.apache.kafka.clients.consumer.*;
 import org.apache.kafka.clients.producer.*;
 import org.junit.*;
-import org.slf4j.*;
 
 import com.obsidiandynamics.await.*;
+import com.obsidiandynamics.func.*;
 import com.obsidiandynamics.jackdaw.SerdeProps.*;
 import com.obsidiandynamics.threads.*;
 
@@ -27,11 +27,11 @@ public final class ProducerPipeTest {
   
   @Test
   public void testSendDisposedAsync() {
-    final Logger log = mock(Logger.class);
+    final ExceptionHandler eh = mock(ExceptionHandler.class);
     final Kafka<String, String> kafka = new MockKafka<>();
     final SerdeProps props = new SerdeProps(SerdePair.STRING);
     final Producer<String, String> producer = kafka.getProducer(props.producer());
-    pipe = new ProducerPipe<>(new ProducerPipeConfig().withAsync(true), producer, ProducerPipe.class.getSimpleName(), log);
+    pipe = new ProducerPipe<>(new ProducerPipeConfig().withAsync(true), producer, ProducerPipe.class.getSimpleName(), eh);
 
     pipe.closeProducer();
     final String msg = "B100";
@@ -39,16 +39,16 @@ public final class ProducerPipeTest {
     pipe.send(rec, null);
     
     Threads.sleep(10);
-    verifyNoMoreInteractions(log);
+    verifyNoMoreInteractions(eh);
   }
   
   @Test
   public void testSendAsync() {
-    final Logger log = mock(Logger.class);
+    final ExceptionHandler eh = mock(ExceptionHandler.class);
     final Kafka<String, String> kafka = new MockKafka<>();
     final SerdeProps props = new SerdeProps(SerdePair.STRING);
     final Producer<String, String> producer = kafka.getProducer(props.producer());
-    pipe = new ProducerPipe<>(new ProducerPipeConfig().withAsync(true), producer, ProducerPipe.class.getSimpleName(), log);
+    pipe = new ProducerPipe<>(new ProducerPipeConfig().withAsync(true), producer, ProducerPipe.class.getSimpleName(), eh);
 
     final Consumer<String, String> consumer = kafka.getConsumer(props.consumer());
     consumer.subscribe(Arrays.asList("test"));
@@ -64,11 +64,11 @@ public final class ProducerPipeTest {
   
   @Test
   public void testSendSync() {
-    final Logger log = mock(Logger.class);
+    final ExceptionHandler eh = mock(ExceptionHandler.class);
     final Kafka<String, String> kafka = new MockKafka<>();
     final SerdeProps props = new SerdeProps(SerdePair.STRING);
     final Producer<String, String> producer = kafka.getProducer(props.producer());
-    pipe = new ProducerPipe<>(new ProducerPipeConfig().withAsync(false), producer, ProducerPipe.class.getSimpleName(), log);
+    pipe = new ProducerPipe<>(new ProducerPipeConfig().withAsync(false), producer, ProducerPipe.class.getSimpleName(), eh);
 
     final Consumer<String, String> consumer = kafka.getConsumer(props.consumer());
     consumer.subscribe(Arrays.asList("test"));
@@ -83,19 +83,20 @@ public final class ProducerPipeTest {
   
   @Test
   public void testSendError() {
-    final Logger log = mock(Logger.class);
+    final ExceptionHandler eh = mock(ExceptionHandler.class);
+    final RuntimeException cause = new RuntimeException("testSendError");
     final Kafka<String, String> kafka = new MockKafka<String, String>()
-        .withSendRuntimeExceptionGenerator(r -> new RuntimeException("testSendError"));
+        .withSendRuntimeExceptionGenerator(r -> cause);
     final SerdeProps props = new SerdeProps(SerdePair.STRING);
     final Producer<String, String> producer = kafka.getProducer(props.producer());
-    pipe = new ProducerPipe<>(new ProducerPipeConfig().withAsync(false), producer, ProducerPipe.class.getSimpleName(), log);
+    pipe = new ProducerPipe<>(new ProducerPipeConfig().withAsync(false), producer, ProducerPipe.class.getSimpleName(), eh);
 
     final String msg = "B100";
     final ProducerRecord<String, String> rec = new ProducerRecord<>("test", msg);
     pipe.send(rec, null);
     
     wait.until(() -> {
-      verify(log).error(any(), (Throwable) any());
+      verify(eh).onException(isNotNull(), eq(cause));
     });
   }
 }

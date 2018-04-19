@@ -2,6 +2,7 @@ package com.obsidiandynamics.jackdaw;
 
 import static com.obsidiandynamics.jackdaw.KafkaClusterConfig.*;
 
+import java.lang.invoke.*;
 import java.util.*;
 import java.util.concurrent.*;
 import java.util.concurrent.TimeoutException;
@@ -10,12 +11,12 @@ import java.util.function.*;
 import org.apache.kafka.clients.admin.*;
 import org.apache.kafka.common.*;
 import org.apache.kafka.common.errors.*;
-import org.slf4j.*;
 
 import com.obsidiandynamics.yconf.props.*;
+import com.obsidiandynamics.zerolog.*;
 
 public final class KafkaAdmin implements AutoCloseable {
-  private static final Logger log = LoggerFactory.getLogger(KafkaAdmin.class);
+  private static final Zlg zlg = Zlg.forClass(MethodHandles.lookup().lookupClass()).get();
   
   private final AdminClient admin;
   
@@ -94,11 +95,11 @@ public final class KafkaAdmin implements AutoCloseable {
     for (Map.Entry<String, KafkaFuture<Void>> entry : result.values().entrySet()) {
       try {
         entry.getValue().get();
-        log.debug("Created topic {}", entry.getKey());
+        zlg.d("Created topic %s", z -> z.arg(entry::getKey));
         created.add(entry.getKey());
       } catch (ExecutionException e) {
         if (e.getCause() instanceof TopicExistsException) {
-          log.debug("Topic {} already exists", entry.getKey());
+          zlg.d("Topic %s already exists", z -> z.arg(entry::getKey));
         } else {
           throw e;
         }

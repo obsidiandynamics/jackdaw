@@ -10,7 +10,7 @@ import org.apache.kafka.common.*;
 import org.junit.*;
 
 import com.obsidiandynamics.await.*;
-import com.obsidiandynamics.jackdaw.KafkaReceiver.*;
+import com.obsidiandynamics.jackdaw.AsyncReceiver.*;
 import com.obsidiandynamics.func.*;
 
 public final class ConsumerPipeTest {

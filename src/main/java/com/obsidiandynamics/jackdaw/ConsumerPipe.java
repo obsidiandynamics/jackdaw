@@ -5,7 +5,7 @@ import java.util.concurrent.*;
 
 import org.apache.kafka.clients.consumer.*;
 
-import com.obsidiandynamics.jackdaw.KafkaReceiver.*;
+import com.obsidiandynamics.jackdaw.AsyncReceiver.*;
 import com.obsidiandynamics.worker.*;
 import com.obsidiandynamics.worker.Terminator;
 

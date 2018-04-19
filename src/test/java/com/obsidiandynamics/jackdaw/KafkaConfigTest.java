@@ -13,10 +13,10 @@ import com.obsidiandynamics.yconf.props.*;
 
 public final class KafkaConfigTest {
   @Test
-  public void testConfig() throws IOException {
+  public void testClusterConfig() throws IOException {
     final Kafka<?, ?> kafka = new MappingContext()
         .withParser(new SnakeyamlParser())
-        .fromStream(KafkaConfigTest.class.getClassLoader().getResourceAsStream("kafka.conf"))
+        .fromStream(KafkaConfigTest.class.getClassLoader().getResourceAsStream("kafka-cluster.conf"))
         .map(Kafka.class);
     assertNotNull(kafka);
     assertEquals(KafkaCluster.class, kafka.getClass());
@@ -24,9 +24,20 @@ public final class KafkaConfigTest {
     
     final KafkaClusterConfig config = ((KafkaCluster<?, ?>) kafka).getConfig();
     assertNotNull(config);
-    assertEquals(new PropsBuilder().with(KafkaClusterConfig.CONFIG_BOOTSTRAP_SERVERS, "10.20.30.40:9092").build(),
+    assertEquals(new PropsBuilder().with(KafkaClusterConfig.CONFIG_BOOTSTRAP_SERVERS, "localhost:9092").build(),
                  config.getCommonProps());
     Assertions.assertToStringOverride(config);
+  }
+  
+  @Test
+  public void testMockConfig() throws IOException {
+    final Kafka<?, ?> kafka = new MappingContext()
+        .withParser(new SnakeyamlParser())
+        .fromStream(KafkaConfigTest.class.getClassLoader().getResourceAsStream("kafka-mock.conf"))
+        .map(Kafka.class);
+    assertNotNull(kafka);
+    assertEquals(MockKafka.class, kafka.getClass());
+    Assertions.assertToStringOverride(kafka);
   }
   
   @Test

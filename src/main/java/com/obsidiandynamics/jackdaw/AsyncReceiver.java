@@ -1,11 +1,10 @@
 package com.obsidiandynamics.jackdaw;
 
 import org.apache.kafka.clients.consumer.*;
-import org.slf4j.*;
 
 import com.obsidiandynamics.worker.*;
 
-public final class KafkaReceiver<K, V> implements Terminable, Joinable {
+public final class AsyncReceiver<K, V> implements Terminable, Joinable {
   @FunctionalInterface
   public interface RecordHandler<K, V> {
     void onReceive(ConsumerRecords<K, V> records) throws InterruptedException;
@@ -26,11 +25,7 @@ public final class KafkaReceiver<K, V> implements Terminable, Joinable {
   
   private final WorkerThread thread;
   
-  public static ErrorHandler genericErrorLogger(Logger logger) {
-    return cause -> logger.warn("Error processing Kafka record", cause);
-  }
-  
-  public KafkaReceiver(Consumer<K, V> consumer, int pollTimeoutMillis, String threadName, 
+  public AsyncReceiver(Consumer<K, V> consumer, int pollTimeoutMillis, String threadName, 
                        RecordHandler<K, V> recordHandler, ErrorHandler errorHandler) {
     this.consumer = consumer;
     this.pollTimeoutMillis = pollTimeoutMillis;

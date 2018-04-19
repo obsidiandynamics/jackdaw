@@ -19,7 +19,7 @@ public final class KafkaDocker {
   
   private Shell shell = new BourneShell().withPath("/usr/local/bin");
   
-  private ProcessExecutor executor;
+  private ProcessExecutor executor = new DefaultProcessExecutor();
   
   private Sink sink = System.out::print;
   

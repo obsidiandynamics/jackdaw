@@ -13,15 +13,14 @@ import org.apache.kafka.common.*;
 import org.apache.kafka.common.errors.*;
 import org.junit.*;
 import org.mockito.stubbing.*;
-import org.slf4j.*;
 
 import com.obsidiandynamics.await.*;
-import com.obsidiandynamics.jackdaw.KafkaReceiver.*;
+import com.obsidiandynamics.jackdaw.AsyncReceiver.*;
 import com.obsidiandynamics.threads.*;
 
 
-public final class KafkaReceiverTest {
-  private KafkaReceiver<String, String> receiver;
+public final class AsyncReceiverTest {
+  private AsyncReceiver<String, String> receiver;
   private Consumer<String, String> consumer;
   private RecordHandler<String, String> recordHandler;
   private ErrorHandler errorHandler;
@@ -76,7 +75,7 @@ public final class KafkaReceiverTest {
     
     when(consumer.poll(anyLong())).then(split(() -> records, 
                                               () -> new ConsumerRecords<>(Collections.emptyMap())));
-    receiver = new KafkaReceiver<String, String>(consumer, 1, "TestThread", recordHandler, errorHandler);
+    receiver = new AsyncReceiver<String, String>(consumer, 1, "TestThread", recordHandler, errorHandler);
     wait.until(() -> {
       try {
         verify(recordHandler, times(1)).onReceive(eq(records));
@@ -95,7 +94,7 @@ public final class KafkaReceiverTest {
     
     when(consumer.poll(anyLong())).then(split(() -> records, 
                                               () -> new ConsumerRecords<>(Collections.emptyMap())));
-    receiver = new KafkaReceiver<String, String>(consumer, 1, "TestThread", recordHandler, errorHandler);
+    receiver = new AsyncReceiver<String, String>(consumer, 1, "TestThread", recordHandler, errorHandler);
     
     Threads.sleep(10);
     verify(recordHandler, never()).onReceive(any());
@@ -105,7 +104,7 @@ public final class KafkaReceiverTest {
   @Test
   public void testInterrupt() throws InterruptedException {
     when(consumer.poll(anyLong())).then(split(() -> { throw createInterruptException(); }));
-    receiver = new KafkaReceiver<String, String>(consumer, 1, "TestThread", recordHandler, errorHandler);
+    receiver = new AsyncReceiver<String, String>(consumer, 1, "TestThread", recordHandler, errorHandler);
     verify(recordHandler, never()).onReceive(any());
     verify(errorHandler, never()).onError(any());
     receiver.join();
@@ -114,7 +113,7 @@ public final class KafkaReceiverTest {
   @Test
   public void testError() throws InterruptedException {
     when(consumer.poll(anyLong())).then(split(() -> { throw new RuntimeException("boom"); }));
-    receiver = new KafkaReceiver<String, String>(consumer, 1, "TestThread", recordHandler, errorHandler);
+    receiver = new AsyncReceiver<String, String>(consumer, 1, "TestThread", recordHandler, errorHandler);
     wait.until(() -> {
       try {
         verify(recordHandler, never()).onReceive(any());
@@ -125,21 +124,6 @@ public final class KafkaReceiverTest {
     });
     receiver.terminate().join();
     verify(consumer).close();
-  }
-
-  @Test
-  public void testGenericErrorLogger() {
-    when(consumer.poll(anyLong())).then(split(() -> { throw new RuntimeException("boom"); }));
-    final Logger logger = mock(Logger.class);
-    receiver = new KafkaReceiver<String, String>(consumer, 1, "TestThread", recordHandler, KafkaReceiver.genericErrorLogger(logger));
-    wait.until(() -> {
-      try {
-        verify(recordHandler, never()).onReceive(any());
-      } catch (InterruptedException e) {
-        throw new AssertionError(e);
-      }
-      verify(logger, atLeastOnce()).warn(anyString(), any(RuntimeException.class));
-    });
   }
   
   private static InterruptException createInterruptException() {

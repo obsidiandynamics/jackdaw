@@ -16,7 +16,7 @@ import com.obsidiandynamics.zerolog.*;
 /**
  *  Demonstrates pub-sub with either {@link KafkaCluster} or {@link MockKafka}.<p>
  *  
- *  The subscriber is asynchronous, driven by a {@link KafkaReceiver}.
+ *  The subscriber is asynchronous, driven by a {@link AsyncReceiver}.
  */
 public final class PubSubSample {
   private static final Zlg zlg = Zlg.forClass(MethodHandles.lookup().lookupClass()).get();
@@ -79,13 +79,13 @@ public final class PubSubSample {
           .build();
     }
 
-    private final KafkaReceiver<String, String> receiver;
+    private final AsyncReceiver<String, String> receiver;
     private final Consumer<String, String> consumer;
     
     SampleSubscriber() {
       consumer = kafka.getConsumer(getProps());
       consumer.subscribe(Arrays.asList(TOPIC));
-      receiver = new KafkaReceiver<>(consumer, 100, SampleSubscriber.class.getSimpleName(), this::onReceive, this::onError);
+      receiver = new AsyncReceiver<>(consumer, 100, SampleSubscriber.class.getSimpleName(), this::onReceive, this::onError);
     }
     
     private void onReceive(ConsumerRecords<String, String> records) {

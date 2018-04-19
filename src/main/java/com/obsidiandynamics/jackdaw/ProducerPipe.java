@@ -3,8 +3,8 @@ package com.obsidiandynamics.jackdaw;
 import java.util.*;
 
 import org.apache.kafka.clients.producer.*;
-import org.slf4j.*;
 
+import com.obsidiandynamics.func.*;
 import com.obsidiandynamics.nodequeue.*;
 import com.obsidiandynamics.worker.*;
 import com.obsidiandynamics.worker.Terminator;
@@ -31,15 +31,15 @@ public final class ProducerPipe<K, V> implements Terminable, Joinable {
   
   private final WorkerThread thread;
   
-  private final Logger log;
+  private final ExceptionHandler exceptionHandler;
   
   private int yields;
   
   private volatile boolean producerDisposed;
   
-  public ProducerPipe(ProducerPipeConfig config, Producer<K, V> producer, String threadName, Logger log) {
+  public ProducerPipe(ProducerPipeConfig config, Producer<K, V> producer, String threadName, ExceptionHandler exceptionHandler) {
     this.producer = producer;
-    this.log = log;
+    this.exceptionHandler = exceptionHandler;
     if (config.isAsync()) {
       thread = WorkerThread.builder()
           .withOptions(new WorkerOptions().daemon().withName(threadName))
@@ -75,7 +75,7 @@ public final class ProducerPipe<K, V> implements Terminable, Joinable {
       producer.send(record, callback);
     } catch (Throwable e) {
       if (! producerDisposed) {
-        log.error(String.format("Error sending %s", record), e);
+        exceptionHandler.onException(String.format("Error sending %s", record), e);
       }
     }
   }
