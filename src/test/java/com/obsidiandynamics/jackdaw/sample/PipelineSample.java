@@ -10,13 +10,15 @@ import org.apache.kafka.common.serialization.*;
 import com.obsidiandynamics.func.*;
 import com.obsidiandynamics.jackdaw.*;
 import com.obsidiandynamics.jackdaw.AsyncReceiver.*;
+import com.obsidiandynamics.threads.*;
 import com.obsidiandynamics.yconf.props.*;
 import com.obsidiandynamics.zerolog.*;
 
 public final class PipelineSample {
   public static void main(String[] args) throws InterruptedException {
     final Zlg zlg = Zlg.forClass(MethodHandles.lookup().lookupClass()).get();
-    final Kafka<String, String> kafka = new KafkaCluster<>(new KafkaClusterConfig().withBootstrapServers("localhost:9092"));
+    final Kafka<String, String> kafka = new KafkaCluster<>(new KafkaClusterConfig()
+                                                           .withBootstrapServers("localhost:9092"));
     
     final Properties producerProps = new PropsBuilder()
         .with("key.serializer", StringSerializer.class.getName())
@@ -50,10 +52,16 @@ public final class PipelineSample {
     final ConsumerPipe<String, String> consumerPipe = new ConsumerPipe<>(consumerPipeConfig, 
         recordHandler, ConsumerPipe.class.getSimpleName());
     
-    for (;;) {
-      // calling receive() doesn't block (up to the 'backlogBatches' capacity of the underlying queue); 
-      // calling poll() blocks as expected
-      consumerPipe.receive(consumer.poll(1000));
-    }
+    // feed the pipeline from an AsyncReceiver
+    final AsyncReceiver<?, ?> receiver = 
+        new AsyncReceiver<>(consumer, 1000, "AsyncReceiverThread", consumerPipe::receive, exceptionHandler);
+    
+    // give it some time...
+    Threads.sleep(5_000);
+
+    // clean up
+    producerPipe.terminate();
+    receiver.terminate();
+    consumerPipe.terminate();
   }
 }

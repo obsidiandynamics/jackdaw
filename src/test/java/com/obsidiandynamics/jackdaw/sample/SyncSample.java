@@ -14,7 +14,8 @@ import com.obsidiandynamics.zerolog.*;
 public final class SyncSample {
   public static void main(String[] args) {
     final Zlg zlg = Zlg.forClass(MethodHandles.lookup().lookupClass()).get();
-    final Kafka<String, String> kafka = new KafkaCluster<>(new KafkaClusterConfig().withBootstrapServers("localhost:9092"));
+    final Kafka<String, String> kafka = new KafkaCluster<>(new KafkaClusterConfig()
+                                                           .withBootstrapServers("localhost:9092"));
     
     final Properties producerProps = new PropsBuilder()
         .with("key.serializer", StringSerializer.class.getName())
