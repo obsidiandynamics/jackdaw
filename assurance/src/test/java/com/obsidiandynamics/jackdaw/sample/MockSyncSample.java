@@ -32,7 +32,7 @@ public final class MockSyncSample {
     producer.send(new ProducerRecord<>("topic", "key", "value"));
     
     for (;;) {
-      final ConsumerRecords<String, String> records = consumer.poll(1000);
+      final ConsumerRecords<String, String> records = consumer.poll(100);
       zlg.i("Got %d records", z -> z.arg(records::count));
     }
   }

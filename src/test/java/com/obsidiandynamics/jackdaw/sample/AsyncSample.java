@@ -47,7 +47,7 @@ public final class AsyncSample {
     
     // wrap the consumer in an AsyncReceiver
     final AsyncReceiver<?, ?> receiver = 
-        new AsyncReceiver<>(consumer, 1000, "AsyncReceiverThread", recordHandler, exceptionHandler);
+        new AsyncReceiver<>(consumer, 100, "AsyncReceiverThread", recordHandler, exceptionHandler);
 
     zlg.i("Publishing record");
     producer.send(new ProducerRecord<>("topic", "key", "value"));

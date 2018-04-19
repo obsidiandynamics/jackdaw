@@ -36,7 +36,7 @@ public final class ConsumerSample {
       consumer.subscribe(Arrays.asList("test"));
       for (;;) {
         zlg.i("polling...");
-        final ConsumerRecords<String, String> records = consumer.poll(1_000);
+        final ConsumerRecords<String, String> records = consumer.poll(100);
         
         if (! records.isEmpty()) {
           final List<ConsumerRecord<String, String>> recordsList = list(records);

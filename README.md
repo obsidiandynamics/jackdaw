@@ -59,7 +59,7 @@ zlg.i("Publishing record");
 producer.send(new ProducerRecord<>("topic", "key", "value"));
 
 for (;;) {
-  final ConsumerRecords<String, String> records = consumer.poll(1000);
+  final ConsumerRecords<String, String> records = consumer.poll(100);
   zlg.i("Got %d records", z -> z.arg(records::count));
 }
 ```
@@ -91,7 +91,7 @@ zlg.i("Publishing record");
 producer.send(new ProducerRecord<>("topic", "key", "value"));
 
 for (;;) {
-  final ConsumerRecords<String, String> records = consumer.poll(1000);
+  final ConsumerRecords<String, String> records = consumer.poll(100);
   zlg.i("Got %d records", z -> z.arg(records::count));
 }
 ```
@@ -128,7 +128,7 @@ final ExceptionHandler exceptionHandler = ExceptionHandler.forPrintStream(System
 
 // wrap the consumer in an AsyncReceiver
 final AsyncReceiver<?, ?> receiver = 
-    new AsyncReceiver<>(consumer, 1000, "AsyncReceiverThread", recordHandler, exceptionHandler);
+    new AsyncReceiver<>(consumer, 100, "AsyncReceiverThread", recordHandler, exceptionHandler);
 
 zlg.i("Publishing record");
 producer.send(new ProducerRecord<>("topic", "key", "value"));
@@ -263,7 +263,7 @@ final ConsumerPipe<String, String> consumerPipe = new ConsumerPipe<>(consumerPip
 
 // feed the pipeline from an AsyncReceiver
 final AsyncReceiver<?, ?> receiver = 
-    new AsyncReceiver<>(consumer, 1000, "AsyncReceiverThread", consumerPipe::receive, exceptionHandler);
+    new AsyncReceiver<>(consumer, 100, "AsyncReceiverThread", consumerPipe::receive, exceptionHandler);
 
 // give it some time...
 Threads.sleep(5_000);

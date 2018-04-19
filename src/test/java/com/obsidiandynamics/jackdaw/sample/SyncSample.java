@@ -37,8 +37,8 @@ public final class SyncSample {
     producer.send(new ProducerRecord<>("topic", "key", "value"));
     
     for (;;) {
-      final ConsumerRecords<String, String> records = consumer.poll(1000);
-      zlg.i("Got %d records", z -> z.arg(records::count));
+      final ConsumerRecords<String, String> records = consumer.poll(100);
+      zlg.i("Got %d record(s)", z -> z.arg(records::count));
     }
   }
 }

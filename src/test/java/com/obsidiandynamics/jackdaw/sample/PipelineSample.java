@@ -54,7 +54,7 @@ public final class PipelineSample {
     
     // feed the pipeline from an AsyncReceiver
     final AsyncReceiver<?, ?> receiver = 
-        new AsyncReceiver<>(consumer, 1000, "AsyncReceiverThread", consumerPipe::receive, exceptionHandler);
+        new AsyncReceiver<>(consumer, 100, "AsyncReceiverThread", consumerPipe::receive, exceptionHandler);
     
     // give it some time...
     Threads.sleep(5_000);

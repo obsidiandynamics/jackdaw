@@ -33,12 +33,12 @@ public final class MockAsyncSample {
     consumer.subscribe(Collections.singleton("topic"));
     
     final RecordHandler<String, String> recordHandler = records -> {
-      zlg.i("Got %d records", z -> z.arg(records::count));
+      zlg.i("Got %d record(s)", z -> z.arg(records::count));
     };
     
     final ExceptionHandler exceptionHandler = ExceptionHandler.forPrintStream(System.err);
     final AsyncReceiver<String, String> receiver = 
-        new AsyncReceiver<>(consumer, 1000, "AsyncReceiverThread", recordHandler, exceptionHandler);
+        new AsyncReceiver<>(consumer, 100, "AsyncReceiverThread", recordHandler, exceptionHandler);
 
     zlg.i("Publishing record");
     producer.send(new ProducerRecord<>("topic", "key", "value"));
