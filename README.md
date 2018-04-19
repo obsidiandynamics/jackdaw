@@ -1,4 +1,4 @@
-Jackdaw
+<img src="https://raw.githubusercontent.com/wiki/obsidiandynamics/jackdaw/images/jackdaw-logo.png" width="90px" alt="logo"/> Jackdaw
 ===
 Simple configuration and mocking of Kafka clients.
 
