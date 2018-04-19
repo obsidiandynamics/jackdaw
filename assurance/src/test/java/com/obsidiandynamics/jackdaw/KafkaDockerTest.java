@@ -100,7 +100,7 @@ public final class KafkaDockerTest {
         .withLog(target.logger())
         .withPort(sparePort)
         .withExecutor(executor)
-        .withShell(new NullShell())
+        .withShell(NullShell.getIntance())
         .withBrokerAwaitMillis(1000)
         .withSink(sink);
     kd.start();
@@ -145,7 +145,7 @@ public final class KafkaDockerTest {
         .withLog(target.logger())
         .withPort(socket.getLocalPort())
         .withExecutor(executor)
-        .withShell(new NullShell())
+        .withShell(NullShell.getIntance())
         .withBrokerAwaitMillis(1000)
         .withSink(sink);
     kd.stop();
