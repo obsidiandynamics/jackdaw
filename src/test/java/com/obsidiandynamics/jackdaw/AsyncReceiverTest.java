@@ -15,6 +15,7 @@ import org.junit.*;
 import org.mockito.stubbing.*;
 
 import com.obsidiandynamics.await.*;
+import com.obsidiandynamics.func.*;
 import com.obsidiandynamics.jackdaw.AsyncReceiver.*;
 import com.obsidiandynamics.threads.*;
 
@@ -23,7 +24,7 @@ public final class AsyncReceiverTest {
   private AsyncReceiver<String, String> receiver;
   private Consumer<String, String> consumer;
   private RecordHandler<String, String> recordHandler;
-  private ErrorHandler errorHandler;
+  private ExceptionHandler exceptionHandler;
   
   private final Timesert wait = Timesert.wait(10_000);
   
@@ -32,7 +33,7 @@ public final class AsyncReceiverTest {
   public void before() {
     consumer = mock(Consumer.class);
     recordHandler = mock(RecordHandler.class);
-    errorHandler = mock(ErrorHandler.class);
+    exceptionHandler = mock(ExceptionHandler.class);
   }
   
   @After
@@ -75,14 +76,14 @@ public final class AsyncReceiverTest {
     
     when(consumer.poll(anyLong())).then(split(() -> records, 
                                               () -> new ConsumerRecords<>(Collections.emptyMap())));
-    receiver = new AsyncReceiver<String, String>(consumer, 1, "TestThread", recordHandler, errorHandler);
+    receiver = new AsyncReceiver<String, String>(consumer, 1, "TestThread", recordHandler, exceptionHandler);
     wait.until(() -> {
       try {
         verify(recordHandler, times(1)).onReceive(eq(records));
       } catch (InterruptedException e) {
         throw new AssertionError(e);
       }
-      verify(errorHandler, never()).onError(any());
+      verify(exceptionHandler, never()).onException(any(), any());
     });
   }
   
@@ -94,33 +95,34 @@ public final class AsyncReceiverTest {
     
     when(consumer.poll(anyLong())).then(split(() -> records, 
                                               () -> new ConsumerRecords<>(Collections.emptyMap())));
-    receiver = new AsyncReceiver<String, String>(consumer, 1, "TestThread", recordHandler, errorHandler);
+    receiver = new AsyncReceiver<String, String>(consumer, 1, "TestThread", recordHandler, exceptionHandler);
     
     Threads.sleep(10);
     verify(recordHandler, never()).onReceive(any());
-    verify(errorHandler, never()).onError(any());
+    verify(exceptionHandler, never()).onException(any(), any());
   }
 
   @Test
   public void testInterrupt() throws InterruptedException {
     when(consumer.poll(anyLong())).then(split(() -> { throw createInterruptException(); }));
-    receiver = new AsyncReceiver<String, String>(consumer, 1, "TestThread", recordHandler, errorHandler);
+    receiver = new AsyncReceiver<String, String>(consumer, 1, "TestThread", recordHandler, exceptionHandler);
     verify(recordHandler, never()).onReceive(any());
-    verify(errorHandler, never()).onError(any());
+    verify(exceptionHandler, never()).onException(any(), any());
     receiver.join();
   }
   
   @Test
   public void testError() throws InterruptedException {
-    when(consumer.poll(anyLong())).then(split(() -> { throw new RuntimeException("boom"); }));
-    receiver = new AsyncReceiver<String, String>(consumer, 1, "TestThread", recordHandler, errorHandler);
+    final RuntimeException cause = new RuntimeException("boom");
+    when(consumer.poll(anyLong())).then(split(() -> { throw cause; }));
+    receiver = new AsyncReceiver<String, String>(consumer, 1, "TestThread", recordHandler, exceptionHandler);
     wait.until(() -> {
       try {
         verify(recordHandler, never()).onReceive(any());
       } catch (InterruptedException e) {
         throw new AssertionError(e);
       }
-      verify(errorHandler, atLeastOnce()).onError(any(RuntimeException.class));
+      verify(exceptionHandler, atLeastOnce()).onException(isNotNull(), eq(cause));
     });
     receiver.terminate().join();
     verify(consumer).close();

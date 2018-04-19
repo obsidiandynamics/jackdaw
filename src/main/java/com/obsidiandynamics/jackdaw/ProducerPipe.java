@@ -50,6 +50,12 @@ public final class ProducerPipe<K, V> implements Terminable, Joinable {
     }
   }
   
+  /**
+   *  Pushes a record and an optional send callback through the pipeline.
+   *  
+   *  @param record The record.
+   *  @param callback The callback (may be {@code null}).
+   */
   public void send(ProducerRecord<K, V> record, Callback callback) {
     if (thread != null) {
       queue.add(new AsyncRecord<>(record, callback));

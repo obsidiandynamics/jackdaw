@@ -10,12 +10,11 @@ import org.apache.kafka.common.serialization.*;
 import com.obsidiandynamics.func.*;
 import com.obsidiandynamics.jackdaw.*;
 import com.obsidiandynamics.jackdaw.AsyncReceiver.*;
-import com.obsidiandynamics.threads.*;
 import com.obsidiandynamics.yconf.props.*;
 import com.obsidiandynamics.zerolog.*;
 
-public final class AsyncSample {
-  public static void main(String[] args) {
+public final class PipelineSample {
+  public static void main(String[] args) throws InterruptedException {
     final Zlg zlg = Zlg.forClass(MethodHandles.lookup().lookupClass()).get();
     final Kafka<String, String> kafka = new KafkaCluster<>(new KafkaClusterConfig().withBootstrapServers("localhost:9092"));
     
@@ -32,24 +31,29 @@ public final class AsyncSample {
         .with("auto.offset.reset", "earliest")
         .with("enable.auto.commit", true)
         .build();
-    
     final Consumer<String, String> consumer = kafka.getConsumer(consumerProps);
     consumer.subscribe(Collections.singleton("topic"));
+
+    final ExceptionHandler exceptionHandler = ExceptionHandler.forPrintStream(System.err);
+    final ProducerPipeConfig producerPipeConfig = new ProducerPipeConfig().withAsync(true);
+    final ProducerPipe<String, String> producerPipe = new ProducerPipe<>(producerPipeConfig, 
+        producer, "ProducerPipeThread", exceptionHandler);
+    
+    zlg.i("Publishing record");
+    // sending doesn't block, not even to serialize the record
+    producerPipe.send(new ProducerRecord<>("topic", "key", "value"), null);
     
     final RecordHandler<String, String> recordHandler = records -> {
       zlg.i("Got %d records", z -> z.arg(records::count));
     };
+    final ConsumerPipeConfig consumerPipeConfig = new ConsumerPipeConfig().withAsync(true).withBacklogBatches(128);
+    final ConsumerPipe<String, String> consumerPipe = new ConsumerPipe<>(consumerPipeConfig, 
+        recordHandler, ConsumerPipe.class.getSimpleName());
     
-    final ExceptionHandler exceptionHandler = ExceptionHandler.forPrintStream(System.err);
-    final AsyncReceiver<String, String> receiver = 
-        new AsyncReceiver<>(consumer, 1000, "AsyncReceiverThread", recordHandler, exceptionHandler);
-
-    zlg.i("Publishing record");
-    producer.send(new ProducerRecord<>("topic", "key", "value"));
-    
-    Threads.sleep(10_000);
-    
-    producer.close();
-    receiver.terminate();
+    for (;;) {
+      // calling receive() doesn't block (up to the 'backlogBatches' capacity of the underlying queue); 
+      // calling poll() blocks as expected
+      consumerPipe.receive(consumer.poll(1000));
+    }
   }
 }

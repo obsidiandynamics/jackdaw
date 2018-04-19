@@ -2,6 +2,7 @@ package com.obsidiandynamics.jackdaw;
 
 import org.apache.kafka.clients.consumer.*;
 
+import com.obsidiandynamics.func.*;
 import com.obsidiandynamics.worker.*;
 
 public final class AsyncReceiver<K, V> implements Terminable, Joinable {
@@ -10,27 +11,22 @@ public final class AsyncReceiver<K, V> implements Terminable, Joinable {
     void onReceive(ConsumerRecords<K, V> records) throws InterruptedException;
   }
   
-  @FunctionalInterface
-  public interface ErrorHandler {
-    void onError(Throwable cause);
-  }
-  
   private final Consumer<K, V> consumer;
   
   private final int pollTimeoutMillis;
   
   private final RecordHandler<K, V> recordHandler;
   
-  private final ErrorHandler errorHandler;
+  private final ExceptionHandler exceptionHandlerHandler;
   
   private final WorkerThread thread;
   
   public AsyncReceiver(Consumer<K, V> consumer, int pollTimeoutMillis, String threadName, 
-                       RecordHandler<K, V> recordHandler, ErrorHandler errorHandler) {
+                       RecordHandler<K, V> recordHandler, ExceptionHandler exceptionHandler) {
     this.consumer = consumer;
     this.pollTimeoutMillis = pollTimeoutMillis;
     this.recordHandler = recordHandler;
-    this.errorHandler = errorHandler;
+    this.exceptionHandlerHandler = exceptionHandler;
     thread = WorkerThread.builder()
         .withOptions(new WorkerOptions().daemon().withName(threadName))
         .onCycle(this::cycle)
@@ -51,7 +47,7 @@ public final class AsyncReceiver<K, V> implements Terminable, Joinable {
     } catch (org.apache.kafka.common.errors.InterruptException e) {
       throw new InterruptedException("Converted from " + org.apache.kafka.common.errors.InterruptException.class.getName());
     } catch (Throwable e) {
-      errorHandler.onError(e);
+      exceptionHandlerHandler.onException("Unexpected error", e);
       return;
     }
   }

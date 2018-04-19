@@ -99,8 +99,8 @@ public final class PubSubSample {
       return String.format("%s-%d@%d", rec.topic(), rec.partition(), rec.offset());
     }
     
-    private void onError(Throwable cause) {
-      zlg.e("receive error: %s", z -> z.arg(cause).tag("rx"));
+    private void onError(String message, Throwable cause) {
+      zlg.e("%s: %s", z -> z.arg(message).arg(cause).tag("rx"));
     }
     
     void close() {

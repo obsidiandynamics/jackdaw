@@ -5,7 +5,7 @@ import com.obsidiandynamics.yconf.*;
 @Y
 public final class ProducerPipeConfig {
   @YInject
-  private boolean async;
+  private boolean async = true;
   
   public ProducerPipeConfig withAsync(boolean async) {
     this.async = async;

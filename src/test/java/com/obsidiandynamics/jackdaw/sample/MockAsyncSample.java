@@ -7,6 +7,7 @@ import org.apache.kafka.clients.consumer.*;
 import org.apache.kafka.clients.producer.*;
 import org.apache.kafka.common.serialization.*;
 
+import com.obsidiandynamics.func.*;
 import com.obsidiandynamics.jackdaw.*;
 import com.obsidiandynamics.jackdaw.AsyncReceiver.*;
 import com.obsidiandynamics.threads.*;
@@ -35,9 +36,9 @@ public final class MockAsyncSample {
       zlg.i("Got %d records", z -> z.arg(records::count));
     };
     
-    final ErrorHandler errorHandler = cause -> cause.printStackTrace();
-    
-    final AsyncReceiver<String, String> receiver = new AsyncReceiver<>(consumer, 1000, "AsyncReceiver", recordHandler, errorHandler);
+    final ExceptionHandler exceptionHandler = ExceptionHandler.forPrintStream(System.err);
+    final AsyncReceiver<String, String> receiver = 
+        new AsyncReceiver<>(consumer, 1000, "AsyncReceiverThread", recordHandler, exceptionHandler);
 
     zlg.i("Publishing record");
     producer.send(new ProducerRecord<>("topic", "key", "value"));

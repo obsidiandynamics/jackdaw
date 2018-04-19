@@ -1,5 +1,6 @@
 package com.obsidiandynamics.jackdaw;
 
+import static org.junit.Assert.*;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
@@ -35,7 +36,7 @@ public final class ConsumerPipeTest {
     
     final String msg = "B100";
     final ConsumerRecords<String, String> records = records(new ConsumerRecord<>("test", 0, 0, "key", msg));
-    pipe.receive(records);
+    assertTrue(pipe.receive(records));
     
     wait.until(() -> {
       try {
@@ -53,8 +54,17 @@ public final class ConsumerPipeTest {
     
     final String msg = "B100";
     final ConsumerRecords<String, String> records = records(new ConsumerRecord<>("test", 0, 0, "key", msg));
-    pipe.receive(records);
+    assertTrue(pipe.receive(records));
     
     verify(handler).onReceive(eq(records));
+  }
+  
+  @Test
+  public void testReceiveEmptySync() throws InterruptedException {
+    final RecordHandler<String, String> handler = Classes.cast(mock(RecordHandler.class));
+    pipe = new ConsumerPipe<>(new ConsumerPipeConfig().withAsync(false), handler, ConsumerPipe.class.getSimpleName());
+    
+    assertFalse(pipe.receive(new ConsumerRecords<>(Collections.emptyMap())));
+    verifyNoMoreInteractions(handler);
   }
 }

@@ -29,12 +29,23 @@ public final class ConsumerPipe<K, V> implements Terminable, Joinable {
     }
   }
   
+  /**
+   *  Pushes newly received records through the pipeline.
+   *  
+   *  @param records The records to push.
+   *  @return True if records were enqueued (in async mode). Sync mode always returns true.
+   *  @throws InterruptedException If this thread was interrupted (only in async mode).
+   */
   public boolean receive(ConsumerRecords<K, V> records) throws InterruptedException {
-    if (thread != null) {
-      return queue.offer(records);
+    if (records.count() != 0) {
+      if (thread != null) {
+        return queue.offer(records);
+      } else {
+        handler.onReceive(records);
+        return true;
+      }
     } else {
-      handler.onReceive(records);
-      return true;
+      return false;
     }
   }
   
