@@ -13,7 +13,7 @@ public class YConfSample {
   public static void main(String[] args) throws IOException {
     final Kafka<?, ?> kafka = new MappingContext()
         .withParser(new SnakeyamlParser())
-        .fromStream(KafkaConfigTest.class.getClassLoader().getResourceAsStream("kafka-cluster.conf"))
+        .fromStream(new FileInputStream("src/test/resources/kafka-cluster.conf"))
         .map(Kafka.class);
     
     // default properties

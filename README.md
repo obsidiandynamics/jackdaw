@@ -151,7 +151,7 @@ Another common use case is configuration. In the following example we use [YConf
 ```java
 final Kafka<?, ?> kafka = new MappingContext()
     .withParser(new SnakeyamlParser())
-    .fromStream(KafkaConfigTest.class.getClassLoader().getResourceAsStream("kafka-cluster.conf"))
+    .fromStream(new FileInputStream("src/test/resources/kafka-cluster.conf"))
     .map(Kafka.class);
 
 // override the properties from the config
@@ -198,7 +198,7 @@ In a slightly more elaborate example, suppose there are a set of default propert
 ```java
 final Kafka<?, ?> kafka = new MappingContext()
     .withParser(new SnakeyamlParser())
-    .fromStream(KafkaConfigTest.class.getClassLoader().getResourceAsStream("kafka-cluster.conf"))
+    .fromStream(new FileInputStream("src/test/resources/kafka-cluster.conf"))
     .map(Kafka.class);
 
 // default properties
