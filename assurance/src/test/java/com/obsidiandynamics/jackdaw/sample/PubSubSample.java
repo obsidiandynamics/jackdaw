@@ -10,7 +10,7 @@ import org.apache.kafka.common.serialization.*;
 
 import com.obsidiandynamics.jackdaw.*;
 import com.obsidiandynamics.threads.*;
-import com.obsidiandynamics.yconf.props.*;
+import com.obsidiandynamics.yconf.util.*;
 import com.obsidiandynamics.zerolog.*;
 
 /**

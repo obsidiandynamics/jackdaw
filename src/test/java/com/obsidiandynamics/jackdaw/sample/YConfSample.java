@@ -7,7 +7,7 @@ import org.apache.kafka.clients.producer.*;
 
 import com.obsidiandynamics.jackdaw.*;
 import com.obsidiandynamics.yconf.*;
-import com.obsidiandynamics.yconf.props.*;
+import com.obsidiandynamics.yconf.util.*;
 
 public class YConfSample {
   public static void main(String[] args) throws IOException {

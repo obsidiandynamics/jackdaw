@@ -4,7 +4,7 @@ import java.util.*;
 
 import org.apache.kafka.common.serialization.*;
 
-import com.obsidiandynamics.yconf.props.*;
+import com.obsidiandynamics.yconf.util.*;
 
 final class SerdeProps {
   enum SerdePair {

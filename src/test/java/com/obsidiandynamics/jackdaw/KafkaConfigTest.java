@@ -9,7 +9,7 @@ import org.junit.*;
 
 import com.obsidiandynamics.assertion.*;
 import com.obsidiandynamics.yconf.*;
-import com.obsidiandynamics.yconf.props.*;
+import com.obsidiandynamics.yconf.util.*;
 
 public final class KafkaConfigTest {
   @Test

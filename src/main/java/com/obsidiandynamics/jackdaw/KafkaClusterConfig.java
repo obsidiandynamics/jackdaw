@@ -3,7 +3,7 @@ package com.obsidiandynamics.jackdaw;
 import java.util.*;
 
 import com.obsidiandynamics.yconf.*;
-import com.obsidiandynamics.yconf.props.*;
+import com.obsidiandynamics.yconf.util.*;
 
 @Y(KafkaClusterConfig.Mapper.class)
 public final class KafkaClusterConfig {

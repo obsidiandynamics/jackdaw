@@ -10,9 +10,10 @@ import org.apache.kafka.clients.consumer.*;
 import org.apache.kafka.clients.producer.*;
 import org.apache.kafka.common.serialization.*;
 import org.junit.*;
+import org.mockito.*;
 
 import com.obsidiandynamics.func.*;
-import com.obsidiandynamics.yconf.props.*;
+import com.obsidiandynamics.yconf.util.*;
 
 public class KafkaClusterTest {
   private static <K, V> KafkaCluster<K, V> createCluster() {
@@ -40,10 +41,10 @@ public class KafkaClusterTest {
   
   @Test
   public void testDescribeProducer() {
-    final LogLine logLine = mock(LogLine.class);
+    final LogLine logLine = mock(LogLine.class, Answers.CALLS_REAL_METHODS);
     createCluster().describeProducer(logLine, 
                                      new PropsBuilder().with("default", "1").build(),
-                                     new PropsBuilder().with("overriden", "2").build());
+                                     new PropsBuilder().with("overridden", "2").build());
     verify(logLine, atLeastOnce()).accept(any());
   }
   
@@ -55,10 +56,10 @@ public class KafkaClusterTest {
   }
   @Test
   public void testDescribeConsumer() {
-    final LogLine logLine = mock(LogLine.class);
+    final LogLine logLine = mock(LogLine.class, Answers.CALLS_REAL_METHODS);
     createCluster().describeConsumer(logLine, 
                                      new PropsBuilder().with("default", "1").build(),
-                                     new PropsBuilder().with("overriden", "2").build());
+                                     new PropsBuilder().with("overridden", "2").build());
     verify(logLine, atLeastOnce()).accept(any());
   }
 }

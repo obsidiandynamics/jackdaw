@@ -8,7 +8,7 @@ import org.apache.kafka.clients.producer.*;
 import org.apache.kafka.common.serialization.*;
 
 import com.obsidiandynamics.jackdaw.*;
-import com.obsidiandynamics.yconf.props.*;
+import com.obsidiandynamics.yconf.util.*;
 import com.obsidiandynamics.zerolog.*;
 
 public final class MockSyncSample {

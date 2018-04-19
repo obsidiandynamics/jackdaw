@@ -11,7 +11,7 @@ import com.obsidiandynamics.func.*;
 import com.obsidiandynamics.jackdaw.*;
 import com.obsidiandynamics.jackdaw.AsyncReceiver.*;
 import com.obsidiandynamics.threads.*;
-import com.obsidiandynamics.yconf.props.*;
+import com.obsidiandynamics.yconf.util.*;
 import com.obsidiandynamics.zerolog.*;
 
 public final class PipelineSample {

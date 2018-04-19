@@ -1,6 +1,6 @@
 package com.obsidiandynamics.jackdaw;
 
-import static com.obsidiandynamics.yconf.props.PropsFormat.*;
+import static com.obsidiandynamics.props.PropsFormat.*;
 
 import java.util.*;
 
@@ -9,7 +9,7 @@ import org.apache.kafka.clients.producer.*;
 
 import com.obsidiandynamics.func.*;
 import com.obsidiandynamics.yconf.*;
-import com.obsidiandynamics.yconf.props.*;
+import com.obsidiandynamics.props.*;
 
 @Y
 public final class KafkaCluster<K, V> implements Kafka<K, V> {

@@ -12,7 +12,7 @@ import org.apache.kafka.clients.admin.*;
 import org.apache.kafka.common.*;
 import org.apache.kafka.common.errors.*;
 
-import com.obsidiandynamics.yconf.props.*;
+import com.obsidiandynamics.yconf.util.*;
 import com.obsidiandynamics.zerolog.*;
 
 public final class KafkaAdmin implements AutoCloseable {
