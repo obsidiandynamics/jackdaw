@@ -44,6 +44,7 @@ allprojects {
   
   dependencies {
     testCompile "com.obsidiandynamics.fulcrum:fulcrum-junit:${fulcrumVersion}"
+    testCompile "com.obsidiandynamics.yconf:yconf-snakeyaml:${yconfVersion}"
     testCompile "junit:junit:4.12"
     testCompile "org.mockito:mockito-core:2.18.0"
     testRuntime "com.obsidiandynamics.zerolog:zerolog-slf4j17:${zerologVersion}"
@@ -131,8 +132,6 @@ dependencies {
   compile "com.obsidiandynamics.yconf:yconf-core:${yconfVersion}"
   compile "com.obsidiandynamics.zerolog:zerolog-core:${zerologVersion}"
   compile "org.apache.kafka:kafka-clients:0.11.0.2"
-  
-  testCompile "com.obsidiandynamics.yconf:yconf-snakeyaml:${yconfVersion}"
 }
 
 jar {
@@ -176,7 +175,7 @@ publishing {
   }
 }
 
-def packageDesc = "Simple configuration and mocking of Kafka clients"
+def packageDesc = "Configuration support and other core Jackdaw elements"
 def repoName = "jackdaw"
 bintray {
   user = System.getenv(envUser)

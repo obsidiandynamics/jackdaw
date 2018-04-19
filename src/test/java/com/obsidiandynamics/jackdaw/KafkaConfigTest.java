@@ -30,17 +30,6 @@ public final class KafkaConfigTest {
   }
   
   @Test
-  public void testMockConfig() throws IOException {
-    final Kafka<?, ?> kafka = new MappingContext()
-        .withParser(new SnakeyamlParser())
-        .fromStream(KafkaConfigTest.class.getClassLoader().getResourceAsStream("kafka-mock.conf"))
-        .map(Kafka.class);
-    assertNotNull(kafka);
-    assertEquals(MockKafka.class, kafka.getClass());
-    Assertions.assertToStringOverride(kafka);
-  }
-  
-  @Test
   public void testApi() {
     final Properties commonProps = new PropsBuilder().with("common", "COMMON").build();
     final Properties producerProps = new PropsBuilder().with("producer", "PRODUCER").build();

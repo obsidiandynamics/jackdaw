@@ -7,11 +7,11 @@ Simple configuration and mocking of Kafka clients.
 [![codecov](https://codecov.io/gh/obsidiandynamics/jackdaw/branch/master/graph/badge.svg)](https://codecov.io/gh/obsidiandynamics/jackdaw)
 
 # Why Jackdaw?
-While Kafka is an awesome message streaming platform, it's also a little on the heavy side — requiring a cluster of brokers at all times. This makes rapid development and component/integration testing harder than it should be; firstly, you must have access to a broker; secondly, connection establishment and topic rebalancing times can be substantial, blowing out the build/test times. If only you could simulate the entire Kafka infrastructure in a JVM so that messages can be published and consumed without relying on Kafka. After all, you just want to know that _your_ application components integrate correctly; you aren't trying to test Kafka.
+While Kafka is an awesome message streaming platform, it's also a little on the heavy side — requiring a cluster of brokers at all times. This makes rapid development and component/integration testing harder than it should be; firstly, you must have access to a broker; secondly, connection establishment and topic consumer rebalancing times can be substantial, blowing out the build/test times. If only you could simulate the entire Kafka infrastructure in a JVM so that messages can be published and consumed without relying on Kafka. After all, you just want to know that _your_ application components integrate correctly; you aren't trying to test Kafka.
 
 Enter Jackdaw.
 
-Jackdaw is focused on fixing the one area in which Kafka isn't so great — mocking. While it doesn't simulate Kafka in its entirety, it lets you do most things within the mock. It also provides a factory interface — `Kafka` — that lets you easily swap from a mock to a real Kafka connection, playing well with dependency injection.
+Jackdaw is focused on fixing the one area in which Kafka isn't so great — mocking. While it doesn't simulate Kafka in its entirety, it lets you do most things within the mock. It also provides a factory interface — `Kafka` — that lets you easily switch between a mock and a real Kafka client connection, playing well with dependency injection.
 
 Jackdaw also makes the Java clients a little nicer to use, without obfuscating the native API. The traditional `Consumer` API requires continuous calls to `poll()` from a loop. Jackdaw introduces `AsyncReceiver` — a background polling thread that will invoke your nominated callback handler when messages are received. Speaking of threading, Jackdaw is also capable of pipelining message (de)serialisation, improving Kafka's performance on multi-core processors.
 
@@ -22,11 +22,17 @@ Gradle builds are hosted on JCenter. Add the following snippet to your build fil
 
 ```groovy
 compile "com.obsidiandynamics.jackdaw:jackdaw-core:x.y.z"
+testCompile "com.obsidiandynamics.jackdaw:jackdaw-assurance:x.y.z"
 ```
 
+Jackdaw is packaged as two separate modules:
+
+1. `jackdaw-core` — Configuration (YConf) support and other core Jackdaw elements. This module would typically be linked to your production build artifacts.
+2. `jackdaw-assurance` — Mocking components and test utilities. Normally, this module would only be used during testing and should be declared in the `testCompile` configuration.
+
 # Scenarios
-## Configuring a real Kafka connection
-The following snippet publishes a message and consumes it using a real Kafka connection. You'll need a real broker to run this code.
+## Configuring a real Kafka client connection
+The following snippet publishes a message and consumes it using a real Kafka connection. You'll need an actual Kafka broker to run this code.
 
 ```java
 final Zlg zlg = Zlg.forClass(MethodHandles.lookup().lookupClass()).get();
@@ -62,7 +68,7 @@ for (;;) {
 The code above closely resembles how you would normally acquire a `Producer`/`Consumer` pair. The only material difference is that we use the `Kafka` factory interface, which exposes `getProducer(Properties)` and `getConsumer(Properties)` methods. Because we're using real Kafka brokers, we have to supply a `KafkaClusterConfig` with `bootstrapServers` set.
 
 ## Configuring a mock Kafka connection
-So far there was nothing much to write home about. Jackdaw's real power is unleashed when we swap `KafkaCluster` with `MockKafka`.
+So far there wasn't much to write home about. That's about to change. Jackdaw's real power is unleashed when we swap `KafkaCluster` with `MockKafka`.
 
 ```java
 final Zlg zlg = Zlg.forClass(MethodHandles.lookup().lookupClass()).get();
