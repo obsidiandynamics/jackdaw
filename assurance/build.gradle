@@ -3,6 +3,8 @@ version = project(":").version
 
 dependencies {
   compile project(":")
+  compile "com.obsidiandynamics.fulcrum:fulcrum-await:${fulcrumVersion}"
+  compile "com.obsidiandynamics.fulcrum:fulcrum-docker-compose:${fulcrumVersion}"
   
   testCompile project(":").sourceSets.test.output
 }

@@ -43,10 +43,15 @@ allprojects {
   }
   
   dependencies {
+    compileOnly "org.apache.kafka:kafka-clients:1.1.0"
+  
+    testCompile "com.obsidiandynamics.fulcrum:fulcrum-assert:${fulcrumVersion}"
+    testCompile "com.obsidiandynamics.fulcrum:fulcrum-await:${fulcrumVersion}"
     testCompile "com.obsidiandynamics.fulcrum:fulcrum-junit:${fulcrumVersion}"
     testCompile "com.obsidiandynamics.yconf:yconf-snakeyaml:${yconfVersion}"
     testCompile "junit:junit:4.12"
     testCompile "org.mockito:mockito-core:2.18.0"
+    testCompile "org.apache.kafka:kafka-clients:1.1.0"
     testRuntime "com.obsidiandynamics.zerolog:zerolog-slf4j17:${zerologVersion}"
     testRuntime "org.slf4j:slf4j-api:1.7.25"
     testRuntime "org.slf4j:slf4j-log4j12:1.7.25"
@@ -123,15 +128,12 @@ task jacocoRootReport(type: JacocoReport) {
 def packageName = "jackdaw-core"
 
 dependencies {
-  compile "com.obsidiandynamics.fulcrum:fulcrum-await:${fulcrumVersion}"
-  compile "com.obsidiandynamics.fulcrum:fulcrum-docker-compose:${fulcrumVersion}"
   compile "com.obsidiandynamics.fulcrum:fulcrum-node-queue:${fulcrumVersion}"
   compile "com.obsidiandynamics.fulcrum:fulcrum-props:${fulcrumVersion}"
   compile "com.obsidiandynamics.fulcrum:fulcrum-retry:${fulcrumVersion}"
   compile "com.obsidiandynamics.fulcrum:fulcrum-worker:${fulcrumVersion}"
   compile "com.obsidiandynamics.yconf:yconf-core:${yconfVersion}"
   compile "com.obsidiandynamics.zerolog:zerolog-core:${zerologVersion}"
-  compile "org.apache.kafka:kafka-clients:0.11.0.2"
 }
 
 jar {
