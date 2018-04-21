@@ -1,7 +1,6 @@
 package com.obsidiandynamics.jackdaw;
 
 import java.io.*;
-import java.lang.invoke.*;
 import java.net.*;
 
 import com.obsidiandynamics.await.*;
@@ -11,7 +10,7 @@ import com.obsidiandynamics.threads.*;
 import com.obsidiandynamics.zerolog.*;
 
 public final class KafkaDocker {
-  private Zlg zlg = Zlg.forClass(MethodHandles.lookup().lookupClass()).get();
+  private Zlg zlg = Zlg.forDeclaringClass().get();
   
   private String project = "jackdaw";
   

@@ -1,6 +1,5 @@
 package com.obsidiandynamics.jackdaw;
 
-import java.lang.invoke.*;
 import java.util.*;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.*;
@@ -16,7 +15,7 @@ import com.obsidiandynamics.zerolog.*;
 
 @Y
 public final class MockKafka<K, V> implements Kafka<K, V> {
-  private final Zlg zlg = Zlg.forClass(MethodHandles.lookup().lookupClass()).get();
+  private final Zlg zlg = Zlg.forDeclaringClass().get();
   
   private final int maxPartitions;
   

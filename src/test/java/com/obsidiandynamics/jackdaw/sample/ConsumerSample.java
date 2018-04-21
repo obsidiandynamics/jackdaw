@@ -1,6 +1,5 @@
 package com.obsidiandynamics.jackdaw.sample;
 
-import java.lang.invoke.*;
 import java.util.*;
 
 import org.apache.kafka.clients.consumer.*;
@@ -12,7 +11,7 @@ import com.obsidiandynamics.yconf.util.*;
 import com.obsidiandynamics.zerolog.*;
 
 public final class ConsumerSample {
-  private static final Zlg zlg = Zlg.forClass(MethodHandles.lookup().lookupClass()).get();
+  private static final Zlg zlg = Zlg.forDeclaringClass().get();
   
   private static final String BOOTSTRAP_SERVERS = "localhost:9092";
   

@@ -2,7 +2,6 @@ package com.obsidiandynamics.jackdaw;
 
 import static com.obsidiandynamics.jackdaw.KafkaClusterConfig.*;
 
-import java.lang.invoke.*;
 import java.util.*;
 import java.util.concurrent.*;
 import java.util.concurrent.TimeoutException;
@@ -16,7 +15,7 @@ import com.obsidiandynamics.yconf.util.*;
 import com.obsidiandynamics.zerolog.*;
 
 public final class KafkaAdmin implements AutoCloseable {
-  private static final Zlg zlg = Zlg.forClass(MethodHandles.lookup().lookupClass()).get();
+  private static final Zlg zlg = Zlg.forDeclaringClass().get();
   
   private final AdminClient admin;
   

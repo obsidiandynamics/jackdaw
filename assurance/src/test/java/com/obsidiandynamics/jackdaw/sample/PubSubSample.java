@@ -1,6 +1,5 @@
 package com.obsidiandynamics.jackdaw.sample;
 
-import java.lang.invoke.*;
 import java.text.*;
 import java.util.*;
 
@@ -19,7 +18,7 @@ import com.obsidiandynamics.zerolog.*;
  *  The subscriber is asynchronous, driven by a {@link AsyncReceiver}.
  */
 public final class PubSubSample {
-  private static final Zlg zlg = Zlg.forClass(MethodHandles.lookup().lookupClass()).get();
+  private static final Zlg zlg = Zlg.forDeclaringClass().get();
   
   private static final boolean MOCK = false;
   private static final String BROKERS = "localhost:9092";
@@ -91,7 +90,11 @@ public final class PubSubSample {
     private void onReceive(ConsumerRecords<String, String> records) {
       for (ConsumerRecord<String, String> record : records) {
         zlg.i("[%s], key: %s, value: %s", 
-              z -> z.arg(record, SampleSubscriber::formatMetadata).arg(record::key).arg(record::value).tag("rx"));
+              z -> z
+              .arg(Args.map(Args.ref(record), SampleSubscriber::formatMetadata))
+              .arg(record::key)
+              .arg(record::value)
+              .tag("rx"));
       }
     }
     

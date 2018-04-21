@@ -1,6 +1,5 @@
 package com.obsidiandynamics.jackdaw.sample;
 
-import java.lang.invoke.*;
 import java.util.*;
 
 import org.apache.kafka.clients.consumer.*;
@@ -13,7 +12,7 @@ import com.obsidiandynamics.zerolog.*;
 
 public final class SyncSample {
   public static void main(String[] args) {
-    final Zlg zlg = Zlg.forClass(MethodHandles.lookup().lookupClass()).get();
+    final Zlg zlg = Zlg.forDeclaringClass().get();
     final Kafka<String, String> kafka = new KafkaCluster<>(new KafkaClusterConfig()
                                                            .withBootstrapServers("localhost:9092"));
     

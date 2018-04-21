@@ -38,7 +38,7 @@ Jackdaw is packaged as two separate modules:
 The following snippet publishes a message and consumes it using a real Kafka connection. You'll need an actual Kafka broker to run this code.
 
 ```java
-final Zlg zlg = Zlg.forClass(MethodHandles.lookup().lookupClass()).get();
+final Zlg zlg = Zlg.forDeclaringClass().get();
 final Kafka<String, String> kafka = new KafkaCluster<>(new KafkaClusterConfig()
                                                        .withBootstrapServers("localhost:9092"));
 
@@ -75,7 +75,7 @@ The code above closely resembles how you would normally acquire a `Producer`/`Co
 So far there wasn't much to write home about. That's about to change. Jackdaw's real power is unleashed when we swap `KafkaCluster` with `MockKafka`.
 
 ```java
-final Zlg zlg = Zlg.forClass(MethodHandles.lookup().lookupClass()).get();
+final Zlg zlg = Zlg.forDeclaringClass().get();
 final Kafka<String, String> kafka = new MockKafka<>();
 
 final Properties producerProps = new PropsBuilder()
@@ -105,7 +105,7 @@ The code is essentially the same. (We did strip out a bunch of unused properties
 Jackdaw provides `AsyncReceiver` — a convenient background worker that continuously polls Kafka for messages. Example below.
 
 ```java
-final Zlg zlg = Zlg.forClass(MethodHandles.lookup().lookupClass()).get();
+final Zlg zlg = Zlg.forDeclaringClass().get();
 final Kafka<String, String> kafka = new MockKafka<>();
 
 final Properties producerProps = new PropsBuilder()
@@ -228,7 +228,7 @@ Another area where Kafka disappoints is the (lack of) pipelining of message (de)
 Interleaving CPU-bound and I/O bound operations within the same thread isn't considered a good practice; a missed opportunity to capitalise on parallelism, especially with multi-core hardware. Jackdaw comes with two classes — `ProducerPipe` and `ConsumerPipe` — offering configurable pipelining of message serialization and deserialization. The example below illustrates their use.
 
 ```java
-final Zlg zlg = Zlg.forClass(MethodHandles.lookup().lookupClass()).get();
+final Zlg zlg = Zlg.forDeclaringClass().get();
 final Kafka<String, String> kafka = new KafkaCluster<>(new KafkaClusterConfig()
                                                        .withBootstrapServers("localhost:9092"));
 
