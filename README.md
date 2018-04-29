@@ -67,7 +67,7 @@ for (;;) {
 }
 ```
 
-**Note:** We use [ZeroLog](https://github.com/obsidiandynamics/zerolog) within Jackdaw and also in our examples for low-overhead logging.
+**Note:** We use [Zerolog](https://github.com/obsidiandynamics/zerolog) within Jackdaw and also in our examples for low-overhead logging.
 
 The code above closely resembles how you would normally acquire a `Producer`/`Consumer` pair. The only material difference is that we use the `Kafka` factory interface, which exposes `getProducer(Properties)` and `getConsumer(Properties)` methods. Because we're using real Kafka brokers, we have to supply a `KafkaClusterConfig` with `bootstrapServers` set.
 
