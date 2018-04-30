@@ -79,8 +79,8 @@ public final class KafkaDockerTest {
     }
     
     verifyNoMoreInteractions(shell);
-    assertEquals(1, target.entries().forLevel(LogLevel.INFO).containing("Starting Kafka").list().size());
-    assertEquals(1, target.entries().forLevel(LogLevel.INFO).containing("Broker already running").list().size());
+    target.entries().forLevel(LogLevel.INFO).containing("Starting Kafka").assertCount(1);
+    target.entries().forLevel(LogLevel.INFO).containing("Broker already running").assertCount(1);
   }
   
   @Test
@@ -101,13 +101,13 @@ public final class KafkaDockerTest {
         .withPort(sparePort)
         .withExecutor(executor)
         .withShell(NullShell.getIntance())
-        .withBrokerAwaitMillis(1000)
+        .withBrokerAwaitMillis(1_000)
         .withSink(sink);
     kd.start();
     
-    assertEquals(1, target.entries().forLevel(LogLevel.INFO).containing("Starting Kafka").list().size());
-    assertEquals(1, target.entries().forLevel(LogLevel.INFO).containing("Container took").list().size());
-    assertEquals(1, target.entries().forLevel(LogLevel.INFO).containing("Broker up").list().size());
+    target.entries().forLevel(LogLevel.INFO).containing("Starting Kafka").assertCount(1);
+    target.entries().forLevel(LogLevel.INFO).containing("Container took").assertCount(1);
+    target.entries().forLevel(LogLevel.INFO).containing("Broker up").assertCount(1);
     verify(sink, atLeastOnce()).accept(isNotNull());
   }
   
@@ -124,8 +124,8 @@ public final class KafkaDockerTest {
     kd.stop();
     
     verifyNoMoreInteractions(shell);
-    assertEquals(1, target.entries().forLevel(LogLevel.INFO).containing("Stopping Kafka").list().size());
-    assertEquals(1, target.entries().forLevel(LogLevel.INFO).containing("Broker already stopped").list().size());
+    target.entries().forLevel(LogLevel.INFO).containing("Stopping Kafka").assertCount(1);
+    target.entries().forLevel(LogLevel.INFO).containing("Broker already stopped").assertCount(1);
   }
   
   @Test
@@ -146,12 +146,12 @@ public final class KafkaDockerTest {
         .withPort(socket.getLocalPort())
         .withExecutor(executor)
         .withShell(NullShell.getIntance())
-        .withBrokerAwaitMillis(1000)
+        .withBrokerAwaitMillis(1_000)
         .withSink(sink);
     kd.stop();
     
-    assertEquals(1, target.entries().forLevel(LogLevel.INFO).containing("Stopping Kafka").list().size());
-    assertEquals(1, target.entries().forLevel(LogLevel.INFO).containing("Broker down").list().size());
+    target.entries().forLevel(LogLevel.INFO).containing("Stopping Kafka").assertCount(1);
+    target.entries().forLevel(LogLevel.INFO).containing("Broker down").assertCount(1);
     verify(sink, atLeastOnce()).accept(isNotNull());
   }
   
