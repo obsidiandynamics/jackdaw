@@ -5,7 +5,7 @@ apply plugin: "maven-publish"
 apply plugin: "com.jfrog.bintray"
 
 group = "com.obsidiandynamics.jackdaw"
-version = "0.6.0-SNAPSHOT"
+version = "0.5.1"
   
 def envUser = "BINTRAY_USER"
 def envKey = "BINTRAY_KEY"
@@ -37,7 +37,7 @@ allprojects {
   }
   
   ext {
-    fulcrumVersion = "0.14.0"
+    fulcrumVersion = "0.15.1"
     yconfVersion = "0.3.1"
     zerologVersion = "0.14.0"
   }
@@ -62,7 +62,7 @@ allprojects {
     exclude "**/*IT.class"
   }
   
-  task integrationTest(type: Test, description: "Runs integration tests.", group: "Verification") {
+  task integrationTest(type: Test, description: "Runs integration tests", group: "Verification") {
     include "**/*IT.class"
   }
 
