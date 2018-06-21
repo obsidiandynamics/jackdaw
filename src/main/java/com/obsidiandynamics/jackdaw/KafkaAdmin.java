@@ -11,18 +11,43 @@ import org.apache.kafka.clients.admin.*;
 import org.apache.kafka.common.*;
 import org.apache.kafka.common.errors.*;
 
+import com.obsidiandynamics.func.*;
+import com.obsidiandynamics.retry.*;
 import com.obsidiandynamics.yconf.util.*;
 import com.obsidiandynamics.zerolog.*;
 
 public final class KafkaAdmin implements AutoCloseable {
-  private static final Zlg zlg = Zlg.forDeclaringClass().get();
-  
+  private Zlg zlg = Zlg.forDeclaringClass().get();
+
+  private int retryAttempts = 60;
+
+  private int retryBackoffMillis = 1_000;
+
   private final AdminClient admin;
-  
-  public KafkaAdmin(AdminClient admin) {
+
+  private KafkaAdmin(AdminClient admin) {
     this.admin = admin;
   }
   
+  public static KafkaAdmin of(AdminClient admin) {
+    return new KafkaAdmin(admin);
+  }
+
+  public KafkaAdmin withZlg(Zlg zlg) {
+    this.zlg = zlg;
+    return this;
+  }
+
+  public KafkaAdmin withRetryAttempts(int retryAttempts) {
+    this.retryAttempts = retryAttempts;
+    return this;
+  }
+
+  public KafkaAdmin withRetryBackoff(int retryBackoffMillis) {
+    this.retryBackoffMillis = retryBackoffMillis;
+    return this;
+  }
+
   public static KafkaAdmin forConfig(KafkaClusterConfig config, Function<Properties, AdminClient> adminClientFactory) {
     final String bootstrapServers = config.getCommonProps().getProperty(CONFIG_BOOTSTRAP_SERVERS);
     final Properties props = new PropsBuilder()
@@ -31,7 +56,7 @@ public final class KafkaAdmin implements AutoCloseable {
     final AdminClient admin = adminClientFactory.apply(props);
     return new KafkaAdmin(admin);
   }
-  
+
   /**
    *  The result of waiting for the futures in {@link DescribeClusterResult}.
    */
@@ -58,7 +83,7 @@ public final class KafkaAdmin implements AutoCloseable {
       return clusterId;
     }
   }
-  
+
   /**
    *  Describes the cluster, blocking until all operations have completed or a timeout occurs.
    *  
@@ -69,11 +94,13 @@ public final class KafkaAdmin implements AutoCloseable {
    *  @throws TimeoutException If the request timed out.
    */
   public DescribeClusterOutcome describeCluster(long timeoutMillis) throws TimeoutException, InterruptedException, ExecutionException {
-    final DescribeClusterResult result = admin.describeCluster(new DescribeClusterOptions().timeoutMs((int) timeoutMillis));
-    awaitFutures(timeoutMillis, result.nodes(), result.controller(), result.clusterId());
-    return new DescribeClusterOutcome(result.nodes().get(), result.controller().get(), result.clusterId().get());
+    return runWithRetry(() -> {
+      final DescribeClusterResult result = admin.describeCluster(new DescribeClusterOptions().timeoutMs((int) timeoutMillis));
+      awaitFutures(timeoutMillis, result.nodes(), result.controller(), result.clusterId());
+      return new DescribeClusterOutcome(result.nodes().get(), result.controller().get(), result.clusterId().get());
+    });
   }
-  
+
   /**
    *  Ensures that a given topic exists, creating one if necessary. This method blocks until all operations
    *  have completed or a timeout occurs.
@@ -86,40 +113,67 @@ public final class KafkaAdmin implements AutoCloseable {
    *  @throws TimeoutException If the request timed out.
    */
   public Set<String> ensureExists(NewTopic topic, long timeoutMillis) throws InterruptedException, ExecutionException, TimeoutException {
-    final CreateTopicsResult result = admin.createTopics(Collections.singleton(topic), 
-                                                         new CreateTopicsOptions().timeoutMs((int) timeoutMillis));
-    awaitFutures(timeoutMillis, result.values().values());
-    
-    final Set<String> created = new HashSet<>();
-    for (Map.Entry<String, KafkaFuture<Void>> entry : result.values().entrySet()) {
-      try {
-        entry.getValue().get();
-        zlg.d("Created topic %s", z -> z.arg(entry::getKey));
-        created.add(entry.getKey());
-      } catch (ExecutionException e) {
-        if (e.getCause() instanceof TopicExistsException) {
-          zlg.d("Topic %s already exists", z -> z.arg(entry::getKey));
-        } else {
-          throw e;
+    return runWithRetry(() -> {
+      final CreateTopicsResult result = admin.createTopics(Collections.singleton(topic), 
+                                                           new CreateTopicsOptions().timeoutMs((int) timeoutMillis));
+      awaitFutures(timeoutMillis, result.values().values());
+
+      final Set<String> created = new HashSet<>();
+      for (Map.Entry<String, KafkaFuture<Void>> entry : result.values().entrySet()) {
+        try {
+          entry.getValue().get();
+          zlg.d("Created topic %s", z -> z.arg(entry::getKey));
+          created.add(entry.getKey());
+        } catch (ExecutionException e) {
+          if (e.getCause() instanceof TopicExistsException) {
+            zlg.d("Topic %s already exists", z -> z.arg(entry::getKey));
+          } else {
+            throw e;
+          }
         }
       }
-    }
-    return created;
+      return created;
+    });
   }
-  
+
+  static final class UnhandledException extends RuntimeException {
+    private static final long serialVersionUID = 1L;
+    UnhandledException(Throwable cause) { super(cause); }
+  }
+
+  <T> T runWithRetry(CheckedSupplier<T, Throwable> supplier) throws ExecutionException {
+    try {
+      return new Retry()
+          .withExceptionMatcher(Retry.hasCauseThat(Retry.isA(RetriableException.class)))
+          .withBackoff(retryBackoffMillis)
+          .withAttempts(retryAttempts)
+          .withFaultHandler(zlg::w)
+          .withErrorHandler(zlg::e)
+          .run(supplier);
+    } catch (Throwable e) {
+      if (e instanceof ExecutionException) {
+        throw (ExecutionException) e;
+      } else if (e instanceof RuntimeException) {
+        throw (RuntimeException) e;
+      } else {
+        throw new UnhandledException(e);
+      }
+    }
+  }
+
   @Override
   public void close() {
     close(0, TimeUnit.MILLISECONDS);
   }
-  
+
   public void close(long duration, TimeUnit unit) {
     admin.close(duration, unit);
   }
-  
+
   public static void awaitFutures(long timeout, KafkaFuture<?>... futures) throws TimeoutException, InterruptedException {
     awaitFutures(timeout, Arrays.asList(futures));
   }
-  
+
   public static void awaitFutures(long timeoutMillis, Collection<? extends KafkaFuture<?>> futures) throws TimeoutException, InterruptedException {
     for (KafkaFuture<?> future : futures) {
       try {
