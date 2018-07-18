@@ -6,10 +6,10 @@ modules:
   dependencies:
   - name: fulcrum
     groupId: com.obsidiandynamics.fulcrum
-    artefactId: fulcrum-func
+    artifactId: fulcrum-func
   - name: yconf 
     groupId: com.obsidiandynamics.yconf
-    artefactId: yconf-core
+    artifactId: yconf-core
   - name: zerolog 
     groupId: com.obsidiandynamics.zerolog
-    artefactId: zerolog-core
+    artifactId: zerolog-core
