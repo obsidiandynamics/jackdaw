@@ -32,11 +32,27 @@ public final class ConsumerSample {
     
     final int pollIntervalMillis = 100;
     final int commitIntervalMillis = 1_000;
+    final int revokeBlockMillis = 5_000;
     final boolean commitAsync = false;
     long lastCommitTime = 0;
     final Map<TopicPartition, OffsetAndMetadata> offsetsToCommit = new HashMap<>();
     try (Consumer<String, String> consumer = kafka.getConsumer(props)) {
-      consumer.subscribe(Arrays.asList("test"));
+      final ConsumerRebalanceListener rebalanceListener = new ConsumerRebalanceListener() {
+        @Override
+        public void onPartitionsRevoked(Collection<TopicPartition> partitions) {
+          zlg.i("listener: revoked %s", z -> z.arg(partitions));
+          if (! partitions.isEmpty()) {
+            Threads.sleep(revokeBlockMillis);
+            zlg.i("released listener block");
+          }
+        }
+
+        @Override
+        public void onPartitionsAssigned(Collection<TopicPartition> partitions) {
+          zlg.i("listener: assigned %s", z -> z.arg(partitions));
+        }
+      };
+      consumer.subscribe(Arrays.asList("test"), rebalanceListener);
       for (;;) {
         zlg.i("polling...");
         final ConsumerRecords<String, String> records = consumer.poll(100);
