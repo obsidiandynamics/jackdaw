@@ -1,5 +1,6 @@
 package com.obsidiandynamics.jackdaw.sample;
 
+import java.time.*;
 import java.util.*;
 
 import org.apache.kafka.clients.consumer.*;
@@ -31,6 +32,7 @@ public final class ConsumerSample {
     
     final int pollIntervalMillis = 100;
     final int commitIntervalMillis = 1_000;
+    final boolean commitAsync = false;
     long lastCommitTime = 0;
     final Map<TopicPartition, OffsetAndMetadata> offsetsToCommit = new HashMap<>();
     try (Consumer<String, String> consumer = kafka.getConsumer(props)) {
@@ -50,7 +52,11 @@ public final class ConsumerSample {
         if (System.currentTimeMillis() - lastCommitTime > commitIntervalMillis) {
           if (! offsetsToCommit.isEmpty()) {
             zlg.i("committing %s", z -> z.arg(offsetsToCommit));
-            consumer.commitAsync(offsetsToCommit, null);
+            if (commitAsync) {
+              consumer.commitAsync(offsetsToCommit, null);
+            } else {
+              consumer.commitSync(offsetsToCommit, Duration.ofMillis(1_000));
+            }
             offsetsToCommit.clear();
             lastCommitTime = System.currentTimeMillis();
           }
