@@ -41,7 +41,8 @@ allprojects {
     fulcrumVersion = "0.17.0"
     yconfVersion = "0.7.0"
     zerologVersion = "0.18.0"
-    kafkaVersion = "1.1.1"
+    kafkaVersion = "2.0.0"
+    mockitoVersion = "2.21.0"
   }
   
   dependencies {
@@ -52,7 +53,7 @@ allprojects {
     testCompile "com.obsidiandynamics.fulcrum:fulcrum-junit:${fulcrumVersion}"
     testCompile "com.obsidiandynamics.yconf:yconf-snakeyaml:${yconfVersion}"
     testCompile "junit:junit:4.12"
-    testCompile "org.mockito:mockito-core:2.19.1"
+    testCompile "org.mockito:mockito-core:${mockitoVersion}"
     testCompile "org.apache.kafka:kafka-clients:${kafkaVersion}"
     testRuntime "com.obsidiandynamics.zerolog:zerolog-slf4j17:${zerologVersion}"
     testRuntime "org.slf4j:slf4j-api:1.7.25"
