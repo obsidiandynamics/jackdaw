@@ -20,10 +20,12 @@ public final class ConsumerSample {
   private static Kafka<String, String> kafka = new KafkaCluster<>(new KafkaClusterConfig().withBootstrapServers(BOOTSTRAP_SERVERS));
   
   public static void main(String[] args) {
+    final boolean autoCommit = false;
+    
     final Properties props = new PropsBuilder()
         .with("group.id", "sample")
         .with("auto.offset.reset", "earliest")
-        .with("enable.auto.commit", String.valueOf(false))
+        .with("enable.auto.commit", String.valueOf(autoCommit))
         .with("session.timeout.ms", 6_000)
         .with("heartbeat.interval.ms", 2_000)
         .with("key.deserializer", StringDeserializer.class.getName())
@@ -32,7 +34,7 @@ public final class ConsumerSample {
     
     final int pollIntervalMillis = 100;
     final int commitIntervalMillis = 1_000;
-    final int revokeBlockMillis = 5_000;
+    final int revokeBlockMillis = 100;
     final boolean commitAsync = false;
     long lastCommitTime = 0;
     final Map<TopicPartition, OffsetAndMetadata> offsetsToCommit = new HashMap<>();
@@ -40,7 +42,7 @@ public final class ConsumerSample {
       final ConsumerRebalanceListener rebalanceListener = new ConsumerRebalanceListener() {
         @Override
         public void onPartitionsRevoked(Collection<TopicPartition> partitions) {
-          zlg.i("listener: revoked %s", z -> z.arg(partitions));
+          zlg.i("listener: revoked %s (current assignment: %s)", z -> z.arg(partitions).arg(consumer::assignment));
           if (! partitions.isEmpty()) {
             Threads.sleep(revokeBlockMillis);
             zlg.i("released listener block");
@@ -55,8 +57,7 @@ public final class ConsumerSample {
       consumer.subscribe(Arrays.asList("test"), rebalanceListener);
       for (;;) {
         zlg.i("polling...");
-        final ConsumerRecords<String, String> records = consumer.poll(100);
-        
+        final ConsumerRecords<String, String> records = consumer.poll(Duration.ofMillis(100));
         if (! records.isEmpty()) {
           final List<ConsumerRecord<String, String>> recordsList = list(records);
           zlg.i("consumed %,d record(s)", z -> z.arg(recordsList::size));
@@ -78,7 +79,7 @@ public final class ConsumerSample {
           }
         }
         
-        if (! records.isEmpty()) {
+        if (! autoCommit && ! records.isEmpty()) {
           final List<ConsumerRecord<String, String>> recordsList = list(records);
           final ConsumerRecord<String, String> lastRecord = recordsList.get(recordsList.size() - 1);
           offsetsToCommit.put(new TopicPartition(lastRecord.topic(), lastRecord.partition()), 

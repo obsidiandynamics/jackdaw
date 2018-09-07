@@ -1,5 +1,6 @@
 package com.obsidiandynamics.jackdaw.sample;
 
+import java.time.*;
 import java.util.*;
 
 import org.apache.kafka.clients.consumer.*;
@@ -36,7 +37,7 @@ public final class SyncSample {
     producer.send(new ProducerRecord<>("topic", "key", "value"));
     
     for (;;) {
-      final ConsumerRecords<String, String> records = consumer.poll(100);
+      final ConsumerRecords<String, String> records = consumer.poll(Duration.ofMillis(100));
       zlg.i("Got %d record(s)", z -> z.arg(records::count));
     }
   }
