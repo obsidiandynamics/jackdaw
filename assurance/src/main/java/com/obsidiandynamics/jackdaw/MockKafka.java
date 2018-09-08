@@ -1,5 +1,6 @@
 package com.obsidiandynamics.jackdaw;
 
+import java.time.*;
 import java.util.*;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.*;
@@ -243,11 +244,12 @@ public final class MockKafka<K, V> implements Kafka<K, V> {
         return newInfos;
       }
       
-      @Override public ConsumerRecords<K, V> poll(long timeout) {
+      @Override public ConsumerRecords<K, V> poll(Duration timeout) {
+        final long timeoutMillis = timeout.toMillis();
         // super.poll() disregards the timeout, resulting in a spin loop in the absence of records
         // and resource exhaustion on single-CPU machines
         
-        final long endTime = System.currentTimeMillis() + timeout;
+        final long endTime = System.currentTimeMillis() + timeoutMillis;
         for (;;) {
           final ConsumerRecords<K, V> recs = super.poll(timeout);
           if (! recs.isEmpty()) {

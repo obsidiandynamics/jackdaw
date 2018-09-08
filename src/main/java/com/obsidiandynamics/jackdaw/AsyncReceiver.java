@@ -1,5 +1,7 @@
 package com.obsidiandynamics.jackdaw;
 
+import java.time.*;
+
 import org.apache.kafka.clients.consumer.*;
 
 import com.obsidiandynamics.func.*;
@@ -37,7 +39,7 @@ public final class AsyncReceiver<K, V> implements Terminable, Joinable {
   private void cycle(WorkerThread thread) throws InterruptedException {
     final ConsumerRecords<K, V> records;
     try {
-      records = consumer.poll(pollTimeoutMillis);
+      records = consumer.poll(Duration.ofMillis(pollTimeoutMillis));
       
       if (! records.isEmpty()) {
         recordHandler.onReceive(records);

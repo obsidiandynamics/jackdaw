@@ -3,6 +3,7 @@ package com.obsidiandynamics.jackdaw;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
+import java.time.*;
 import java.util.*;
 import java.util.concurrent.atomic.*;
 import java.util.function.*;
@@ -47,7 +48,7 @@ public final class AsyncReceiverTest {
   
   /**
    *  Generates an answer in a way such that the first invocation returns the result
-   *  of the {@code first} supplier, while the second and the rest of the invocation
+   *  of the {@code first} supplier, while the second and subsequent invocations
    *  return the result of {@code second}.
    *  
    *  @param first Supplies the return value of the first invocation.
@@ -61,8 +62,8 @@ public final class AsyncReceiverTest {
       if (firstCall.compareAndSet(false, true)) {
         return first.get();
       } else {
-        final long timeout = (Long) invocation.getArguments()[0];
-        Thread.sleep(timeout);
+        final Duration timeout = (Duration) invocation.getArguments()[0];
+        Thread.sleep(timeout.toMillis());
         return others.get();
       }
     };
@@ -74,8 +75,8 @@ public final class AsyncReceiverTest {
         Collections.singletonMap(new TopicPartition("test", 0), Arrays.asList(new ConsumerRecord<>("test", 0, 0, "key", "value")));
     final ConsumerRecords<String, String> records = new ConsumerRecords<>(recordsMap);
     
-    when(consumer.poll(anyLong())).then(split(() -> records, 
-                                              () -> new ConsumerRecords<>(Collections.emptyMap())));
+    when(consumer.poll(any())).then(split(() -> records, 
+                                          () -> new ConsumerRecords<>(Collections.emptyMap())));
     receiver = new AsyncReceiver<String, String>(consumer, 1, "TestThread", recordHandler, exceptionHandler);
     wait.until(() -> {
       try {
@@ -93,8 +94,8 @@ public final class AsyncReceiverTest {
         Collections.emptyMap();
     final ConsumerRecords<String, String> records = new ConsumerRecords<>(recordsMap);
     
-    when(consumer.poll(anyLong())).then(split(() -> records, 
-                                              () -> new ConsumerRecords<>(Collections.emptyMap())));
+    when(consumer.poll(any(Duration.class))).then(split(() -> records, 
+                                                        () -> new ConsumerRecords<>(Collections.emptyMap())));
     receiver = new AsyncReceiver<String, String>(consumer, 1, "TestThread", recordHandler, exceptionHandler);
     
     Threads.sleep(10);
@@ -104,7 +105,7 @@ public final class AsyncReceiverTest {
 
   @Test
   public void testInterrupt() throws InterruptedException {
-    when(consumer.poll(anyLong())).then(split(() -> { throw createInterruptException(); }));
+    when(consumer.poll(any())).then(split(() -> { throw createInterruptException(); }));
     receiver = new AsyncReceiver<String, String>(consumer, 1, "TestThread", recordHandler, exceptionHandler);
     verify(recordHandler, never()).onReceive(any());
     verify(exceptionHandler, never()).onException(any(), any());
@@ -114,7 +115,7 @@ public final class AsyncReceiverTest {
   @Test
   public void testError() throws InterruptedException {
     final RuntimeException cause = new RuntimeException("boom");
-    when(consumer.poll(anyLong())).then(split(() -> { throw cause; }));
+    when(consumer.poll(any())).then(split(() -> { throw cause; }));
     receiver = new AsyncReceiver<String, String>(consumer, 1, "TestThread", recordHandler, exceptionHandler);
     wait.until(() -> {
       try {

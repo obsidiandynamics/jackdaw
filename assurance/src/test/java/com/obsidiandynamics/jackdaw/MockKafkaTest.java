@@ -4,6 +4,7 @@ import static junit.framework.TestCase.*;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
+import java.time.*;
 import java.util.*;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.*;
@@ -76,7 +77,7 @@ public final class MockKafkaTest {
     }
     
     private void run(WorkerThread t) {
-      final ConsumerRecords<K, V> records = consumer.poll(1);
+      final ConsumerRecords<K, V> records = consumer.poll(Duration.ofMillis(1));
       records.forEach(r -> received.forKey(r.partition()).add(r));
     }
     
@@ -265,10 +266,10 @@ public final class MockKafkaTest {
     detached.subscribe(Arrays.asList("topic"));
     
     producer.send(new ProducerRecord<>("topic", 0, "key", "value"));
-    wait.until(() -> assertEquals(1, attached.poll(1).count()));
+    wait.until(() -> assertEquals(1, attached.poll(Duration.ofMillis(1)).count()));
     
     Threads.sleep(10);
-    assertEquals(0, detached.poll(1).count());
+    assertEquals(0, detached.poll(Duration.ofMillis(1)).count());
   }
   
   /**
@@ -286,7 +287,7 @@ public final class MockKafkaTest {
     attached.subscribe(Arrays.asList("topic"));
     
     producer.send(new ProducerRecord<>("topic", 0, "key", "value"));
-    wait.until(() -> assertEquals(1, attached.poll(1).count()));
+    wait.until(() -> assertEquals(1, attached.poll(Duration.ofMillis(1)).count()));
   }
 
   /**
@@ -304,7 +305,7 @@ public final class MockKafkaTest {
     final Consumer<String, String> consumer = kafka.getConsumer(props.consumer());
     consumer.subscribe(Arrays.asList("different"));
     producer.send(new ProducerRecord<>("topic", 0, "key", "value"));
-    assertEquals(0, consumer.poll(1).count());
+    assertEquals(0, consumer.poll(Duration.ofMillis(1)).count());
   }
 
   /**
@@ -322,7 +323,7 @@ public final class MockKafkaTest {
     
     final Consumer<String, String> consumer = kafka.getConsumer(props.consumer());
     consumer.subscribe(Arrays.asList("different"));
-    assertEquals(0, consumer.poll(1).count());
+    assertEquals(0, consumer.poll(Duration.ofMillis(1)).count());
   }
 
   @Test

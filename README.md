@@ -22,11 +22,11 @@ Gradle builds are hosted on JCenter. Add the following snippet to your build fil
 
 ```groovy
 compile "com.obsidiandynamics.jackdaw:jackdaw-core:x.y.z"
-compile "org.apache.kafka:kafka-clients:1.1.0"
+compile "org.apache.kafka:kafka-clients:2.0.0"
 testCompile "com.obsidiandynamics.jackdaw:jackdaw-assurance:x.y.z"
 ```
 
-**Note:** Although Jackdaw is compiled against Kafka client 1.1.0 and has been tested all the way back to version 0.11.0.0, no specific Kafka client library dependency has been bundled with Jackdaw. This allows you to use any API-compatible Kafka client library in your application without being constrained by transitive dependencies.
+**Note:** Although Jackdaw is compiled against Kafka client 2.0.0, no specific Kafka client library dependency has been bundled with Jackdaw. This allows you to use any (2.x.x) API-compatible Kafka client library in your application without being constrained by transitive dependencies.
 
 Jackdaw is packaged as two separate modules:
 

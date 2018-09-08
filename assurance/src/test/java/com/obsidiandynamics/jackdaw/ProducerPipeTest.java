@@ -4,6 +4,7 @@ import static org.junit.Assert.*;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
+import java.time.*;
 import java.util.*;
 
 import org.apache.kafka.clients.consumer.*;
@@ -58,7 +59,7 @@ public final class ProducerPipeTest {
     pipe.send(rec, null);
     
     wait.until(() -> {
-      assertEquals(1, consumer.poll(1).count());
+      assertEquals(1, consumer.poll(Duration.ofMillis(1)).count());
     });
   }
   
@@ -77,7 +78,7 @@ public final class ProducerPipeTest {
     pipe.send(rec, null);
     
     wait.until(() -> {
-      assertEquals(1, consumer.poll(1).count());
+      assertEquals(1, consumer.poll(Duration.ofMillis(1)).count());
     });
   }
   
