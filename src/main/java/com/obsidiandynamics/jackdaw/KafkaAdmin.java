@@ -138,6 +138,7 @@ public final class KafkaAdmin implements AutoCloseable {
 
   static final class UnhandledException extends RuntimeException {
     private static final long serialVersionUID = 1L;
+    
     UnhandledException(Throwable cause) { super(cause); }
   }
 
@@ -177,7 +178,7 @@ public final class KafkaAdmin implements AutoCloseable {
   public static void awaitFutures(long timeoutMillis, Collection<? extends KafkaFuture<?>> futures) throws TimeoutException, InterruptedException {
     for (KafkaFuture<?> future : futures) {
       try {
-        // allow for a 50% grace period to avoid a premature timeout (let the AdminClient timeout first)
+        // allow for a 50% grace period to avoid a premature timeout (let the AdminClient time out first)
         future.get(timeoutMillis * 3 / 2, TimeUnit.MILLISECONDS);
       } catch (ExecutionException e) {
         if (e.getCause() instanceof org.apache.kafka.common.errors.TimeoutException) {
