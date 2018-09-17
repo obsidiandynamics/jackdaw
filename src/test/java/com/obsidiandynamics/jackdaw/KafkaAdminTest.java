@@ -50,7 +50,7 @@ public final class KafkaAdminTest {
   }
 
   @Test
-  public void testEnsureTopicsExistNewTopic() throws InterruptedException, ExecutionException, TimeoutException {
+  public void testCreateTopicsNewTopic() throws InterruptedException, ExecutionException, TimeoutException {
     final AdminClient client = mock(AdminClient.class);
     admin = KafkaAdmin.of(client);
     when(client.createTopics(any(), any())).then(invocation -> {
@@ -60,12 +60,12 @@ public final class KafkaAdminTest {
       when(r.values()).thenReturn(futures);
       return r; 
     });
-    final Set<String> topics = admin.ensureTopicsExist(Collections.singleton(TestTopic.newOf("test")), 1_000);
+    final Set<String> topics = admin.createTopics(Collections.singleton(TestTopic.newOf("test")), 1_000);
     assertTrue(topics.contains("test"));
   }
 
   @Test
-  public void testEnsureTopicsExistWithExisting() throws InterruptedException, ExecutionException, TimeoutException {
+  public void testCreateTopicsWithExisting() throws InterruptedException, ExecutionException, TimeoutException {
     final MockLogTarget logTarget = new MockLogTarget();
     final AdminClient client = mock(AdminClient.class);
     admin = KafkaAdmin.of(client).withZlg(logTarget.logger());
@@ -78,13 +78,13 @@ public final class KafkaAdminTest {
       when(r.values()).thenReturn(futures);
       return r; 
     });
-    final Set<String> topics = admin.ensureTopicsExist(Collections.singleton(TestTopic.newOf("test")), 1_000);
+    final Set<String> topics = admin.createTopics(Collections.singleton(TestTopic.newOf("test")), 1_000);
     assertFalse(topics.contains("test"));
     logTarget.entries().forLevel(LogLevel.DEBUG).containing("exists").assertCount(1);
   }
 
   @Test(expected=ExecutionException.class)
-  public void testEnsureTopicsExistWithException() throws InterruptedException, ExecutionException, TimeoutException {
+  public void testCreateTopicsWithException() throws InterruptedException, ExecutionException, TimeoutException {
     final AdminClient client = mock(AdminClient.class);
     admin = KafkaAdmin.of(client);
     when(client.createTopics(any(), any())).then(invocation -> {
@@ -96,11 +96,11 @@ public final class KafkaAdminTest {
       when(r.values()).thenReturn(futures);
       return r; 
     });
-    admin.ensureTopicsExist(Collections.singleton(TestTopic.newOf("test")), 1_000);
+    admin.createTopics(Collections.singleton(TestTopic.newOf("test")), 1_000);
   }
 
   @Test
-  public void testEnsureTopicsExistWithRetriableExceptionResolved() throws InterruptedException, ExecutionException, TimeoutException {
+  public void testCreateTopicsWithRetriableExceptionResolved() throws InterruptedException, ExecutionException, TimeoutException {
     final AdminClient client = mock(AdminClient.class);
     final MockLogTarget logTarget = new MockLogTarget();
     admin = KafkaAdmin.of(client).withRetryAttempts(2).withRetryBackoff(0).withZlg(logTarget.logger());
@@ -118,13 +118,13 @@ public final class KafkaAdminTest {
       when(r.values()).thenReturn(futures);
       return r; 
     });
-    admin.ensureTopicsExist(Collections.singleton(TestTopic.newOf("test")), 1_000);
+    admin.createTopics(Collections.singleton(TestTopic.newOf("test")), 1_000);
     assertEquals(2, invocationAttempts.get());
     logTarget.entries().forLevel(LogLevel.WARN).containing("attempt").assertCount(1);
   }
 
   @Test(expected=ExecutionException.class)
-  public void testEnsureTopicsExistWithRetriableExceptionNotResolved() throws InterruptedException, ExecutionException, TimeoutException {
+  public void testCreateTopicsWithRetriableExceptionNotResolved() throws InterruptedException, ExecutionException, TimeoutException {
     final AdminClient client = mock(AdminClient.class);
     admin = KafkaAdmin.of(client).withRetryAttempts(2).withRetryBackoff(0).withZlg(Zlg.nop());
     when(client.createTopics(any(), any())).then(invocation -> {
@@ -136,7 +136,7 @@ public final class KafkaAdminTest {
       when(r.values()).thenReturn(futures);
       return r; 
     });
-    admin.ensureTopicsExist(Collections.singleton(TestTopic.newOf("test")), 1_000);
+    admin.createTopics(Collections.singleton(TestTopic.newOf("test")), 1_000);
   }
 
   @Test
@@ -166,7 +166,7 @@ public final class KafkaAdminTest {
   }
 
   @Test(expected=ExecutionException.class)
-  public void testRunWithRetryThrowsExecutionException() throws ExecutionException {
+  public void testRunWithRetryThrowsExecutionException() throws ExecutionException, TimeoutException, InterruptedException {
     final AdminClient client = mock(AdminClient.class);
     KafkaAdmin.of(client).runWithRetry(() -> {
       throw new ExecutionException("simulated", null);
@@ -174,15 +174,31 @@ public final class KafkaAdminTest {
   }
 
   @Test(expected=RetriableException.class)
-  public void testRunWithRetryThrowsRetriableException() throws ExecutionException {
+  public void testRunWithRetryThrowsRetriableException() throws ExecutionException, TimeoutException, InterruptedException {
     final AdminClient client = mock(AdminClient.class);
     KafkaAdmin.of(client).runWithRetry(() -> {
       throw new InvalidRecordException("simulated");
     });
   }
 
+  @Test(expected=TimeoutException.class)
+  public void testRunWithRetryThrowsTimeoutException() throws ExecutionException, TimeoutException, InterruptedException {
+    final AdminClient client = mock(AdminClient.class);
+    KafkaAdmin.of(client).runWithRetry(() -> {
+      throw new TimeoutException("simulated");
+    });
+  }
+
+  @Test(expected=InterruptedException.class)
+  public void testRunWithRetryThrowsInterruptedException() throws ExecutionException, TimeoutException, InterruptedException {
+    final AdminClient client = mock(AdminClient.class);
+    KafkaAdmin.of(client).runWithRetry(() -> {
+      throw new InterruptedException("simulated");
+    });
+  }
+
   @Test(expected=UnhandledException.class)
-  public void testRunWithRetryThrowsIOException() throws ExecutionException {
+  public void testRunWithRetryThrowsIOException() throws ExecutionException, TimeoutException, InterruptedException {
     final AdminClient client = mock(AdminClient.class);
     admin = KafkaAdmin.of(client).runWithRetry(() -> {
       throw new IOException("simulated");

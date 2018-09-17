@@ -6,9 +6,11 @@ import java.util.*;
 import java.util.concurrent.*;
 import java.util.concurrent.TimeoutException;
 import java.util.function.*;
+import java.util.stream.*;
 
 import org.apache.kafka.clients.admin.*;
 import org.apache.kafka.common.*;
+import org.apache.kafka.common.Node;
 import org.apache.kafka.common.errors.*;
 
 import com.obsidiandynamics.func.*;
@@ -90,15 +92,25 @@ public final class KafkaAdmin implements AutoCloseable {
    *  
    *  @param timeoutMillis The timeout to wait for.
    *  @return The {@link DescribeClusterOutcome}.
-   *  @throws InterruptedException If the thread was interrupted while waiting for the create outcome.
    *  @throws ExecutionException If an unexpected error occurred.
-   *  @throws TimeoutException If the request timed out.
+   *  @throws InterruptedException If the thread was interrupted.
+   *  @throws TimeoutException If a timeout occurred.
    */
-  public DescribeClusterOutcome describeCluster(long timeoutMillis) throws TimeoutException, InterruptedException, ExecutionException {
+  public DescribeClusterOutcome describeCluster(int timeoutMillis) throws ExecutionException, TimeoutException, InterruptedException {
     return runWithRetry(() -> {
       final DescribeClusterResult result = admin.describeCluster(new DescribeClusterOptions().timeoutMs((int) timeoutMillis));
       awaitFutures(timeoutMillis, result.nodes(), result.controller(), result.clusterId());
       return new DescribeClusterOutcome(result.nodes().get(), result.controller().get(), result.clusterId().get());
+    });
+  }
+  
+  public Set<String> listTopics(int timeoutMillis) throws ExecutionException, TimeoutException, InterruptedException {
+    return runWithRetry(() -> {
+      final ListTopicsResult result = admin.listTopics(new ListTopicsOptions().timeoutMs(timeoutMillis));
+      awaitFutures(timeoutMillis, result.listings());
+
+      final Collection<TopicListing> listings = result.listings().get();
+      return listings.stream().map(TopicListing::name).collect(Collectors.toSet());
     });
   }
 
@@ -109,17 +121,17 @@ public final class KafkaAdmin implements AutoCloseable {
    *  @param topics The topics.
    *  @param timeoutMillis The timeout to wait for.
    *  @return The set of topics that were created. (Absence from the set implies that the topic had already existed.)
-   *  @throws InterruptedException If the thread was interrupted while waiting for the create outcome.
    *  @throws ExecutionException If an unexpected error occurred.
-   *  @throws TimeoutException If the request timed out.
+   *  @throws InterruptedException If the thread was interrupted.
+   *  @throws TimeoutException If a timeout occurred.
    */
-  public Set<String> ensureTopicsExist(Collection<NewTopic> topics, long timeoutMillis) throws InterruptedException, ExecutionException, TimeoutException {
+  public Set<String> createTopics(Collection<NewTopic> topics, int timeoutMillis) throws ExecutionException, TimeoutException, InterruptedException {
     return runWithRetry(() -> {
       final CreateTopicsResult result = admin.createTopics(topics, 
-                                                           new CreateTopicsOptions().timeoutMs((int) timeoutMillis));
+                                                           new CreateTopicsOptions().timeoutMs(timeoutMillis));
       awaitFutures(timeoutMillis, result.values().values());
 
-      final Set<String> created = new HashSet<>();
+      final Set<String> created = new HashSet<>(topics.size());
       for (Map.Entry<String, KafkaFuture<Void>> entry : result.values().entrySet()) {
         try {
           entry.getValue().get();
@@ -136,6 +148,30 @@ public final class KafkaAdmin implements AutoCloseable {
       return created;
     });
   }
+  
+  public Set<String> deleteTopics(Collection<String> topics, int timeoutMillis) throws ExecutionException, TimeoutException, InterruptedException {
+    return runWithRetry(() -> {
+      final DeleteTopicsResult result = admin.deleteTopics(topics, 
+                                                           new DeleteTopicsOptions().timeoutMs(timeoutMillis));
+      awaitFutures(timeoutMillis, result.values().values());
+
+      final Set<String> deleted = new HashSet<>(topics.size());
+      for (Map.Entry<String, KafkaFuture<Void>> entry : result.values().entrySet()) {
+        try {
+          entry.getValue().get();
+          zlg.d("Deleted topic %s", z -> z.arg(entry::getKey));
+          deleted.add(entry.getKey());
+        } catch (ExecutionException e) {
+          if (e.getCause() instanceof UnknownTopicOrPartitionException) {
+            zlg.d("Topic %s does not exist", z -> z.arg(entry::getKey));
+          } else {
+            throw e;
+          }
+        }
+      }
+      return deleted;
+    });
+  }
 
   static final class UnhandledException extends RuntimeException {
     private static final long serialVersionUID = 1L;
@@ -143,7 +179,7 @@ public final class KafkaAdmin implements AutoCloseable {
     UnhandledException(Throwable cause) { super(cause); }
   }
 
-  <T> T runWithRetry(CheckedSupplier<T, Throwable> supplier) throws ExecutionException {
+  <T> T runWithRetry(CheckedSupplier<T, Throwable> supplier) throws ExecutionException, TimeoutException, InterruptedException {
     try {
       return new Retry()
           .withExceptionMatcher(Retry.hasCauseThat(Retry.isA(RetriableException.class)))
@@ -157,6 +193,10 @@ public final class KafkaAdmin implements AutoCloseable {
         throw (ExecutionException) e;
       } else if (e instanceof RuntimeException) {
         throw (RuntimeException) e;
+      } else if (e instanceof InterruptedException) {
+        throw (InterruptedException) e;
+      } else if (e instanceof TimeoutException) {
+        throw (TimeoutException) e;
       } else {
         throw new UnhandledException(e);
       }

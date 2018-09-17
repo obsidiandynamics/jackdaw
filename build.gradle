@@ -38,11 +38,15 @@ allprojects {
   }
   
   ext {
+    assertjVersion = "3.11.1"
     fulcrumVersion = "0.17.0"
+    junitVersion = "4.12"
+    kafkaVersion = "2.0.0"
+    log4jVersion = "1.2.17"
+    mockitoVersion = "2.22.0"
+    slf4jVersion = "1.7.25"
     yconfVersion = "0.7.0"
     zerologVersion = "0.18.0"
-    kafkaVersion = "2.0.0"
-    mockitoVersion = "2.21.0"
   }
   
   dependencies {
@@ -52,17 +56,22 @@ allprojects {
     testCompile "com.obsidiandynamics.fulcrum:fulcrum-await:${fulcrumVersion}"
     testCompile "com.obsidiandynamics.fulcrum:fulcrum-junit:${fulcrumVersion}"
     testCompile "com.obsidiandynamics.yconf:yconf-snakeyaml:${yconfVersion}"
-    testCompile "junit:junit:4.12"
+    testCompile "junit:junit:${junitVersion}"
     testCompile "org.mockito:mockito-core:${mockitoVersion}"
     testCompile "org.apache.kafka:kafka-clients:${kafkaVersion}"
+    testCompile "org.assertj:assertj-core:${assertjVersion}"
     testRuntime "com.obsidiandynamics.zerolog:zerolog-slf4j17:${zerologVersion}"
-    testRuntime "org.slf4j:slf4j-api:1.7.25"
+    testRuntime "org.slf4j:slf4j-api:${slf4jVersion}"
     testRuntime "org.slf4j:slf4j-log4j12:1.7.25"
-    testRuntime "log4j:log4j:1.2.17"
+    testRuntime "log4j:log4j:${log4jVersion}"
   }
 
   test {
     exclude "**/*IT.class"
+  }
+  
+  task integrationTest(type: Test, description: "Runs integration tests", group: "Verification") {
+    include "**/*IT.class"
   }
   
   jacoco {
@@ -73,6 +82,11 @@ allprojects {
     if (JavaVersion.current() != JavaVersion.VERSION_1_8) {
       options.addStringOption("quiet", "-html5")
     }
+  }
+
+  task verify {
+    dependsOn test
+    dependsOn integrationTest
   }
 
   jacocoTestReport {
