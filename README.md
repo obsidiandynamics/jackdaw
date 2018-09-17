@@ -287,8 +287,8 @@ Kafka has introduced an `AdminClient` class in version 0.11, simplifying adminis
 
 `KafkaAdmin` is pretty new, only supporting a small handful of methods at this stage:
 
-* `describeCluster(long timeoutMillis)` — Describes the cluster, blocking until all operations have completed or a timeout occurs.
-* `ensureExists(NewTopic topic, long timeoutMillis)` — Ensures that a given topic exists, creating one if necessary. This method blocks until all operations have completed or a timeout occurs.
+* `describeCluster(int timeoutMillis)` — Describes the cluster, blocking until all operations have completed or a timeout occurs.
+* `createTopics(Collection<NewTopic> topics, int timeoutMillis)` — Ensures that the given topics exist, creating if necessary. This method blocks until all operations have completed or a timeout occurs.
 
 ## Docker and Kubernetes
 We typically do our Kafka testing with Docker — either via Docker Compose or Minikube (local Kubernetes). The `${project_root}/stack` directory contains `docker-compose.yaml` and Kubernetes resource files to spin up a small-scale (single-node) ZooKeeper + Kafka cluster locally.
