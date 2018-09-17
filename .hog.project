@@ -1,5 +1,5 @@
 commands:
-  build: ./gradlew build --info --stacktrace --no-daemon
+  build: ./gradlew build verify --info --stacktrace --no-daemon
   publish: ./gradlew -x test bintrayUpload --no-daemon
 modules:
 - path: .
