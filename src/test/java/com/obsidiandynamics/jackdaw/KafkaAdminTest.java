@@ -50,7 +50,7 @@ public final class KafkaAdminTest {
   }
 
   @Test
-  public void testEnsureExistsNewTopic() throws InterruptedException, ExecutionException, TimeoutException {
+  public void testEnsureTopicsExistNewTopic() throws InterruptedException, ExecutionException, TimeoutException {
     final AdminClient client = mock(AdminClient.class);
     admin = KafkaAdmin.of(client);
     when(client.createTopics(any(), any())).then(invocation -> {
@@ -60,12 +60,12 @@ public final class KafkaAdminTest {
       when(r.values()).thenReturn(futures);
       return r; 
     });
-    final Set<String> topics = admin.ensureExists(TestTopic.newOf("test"), 1_000);
+    final Set<String> topics = admin.ensureTopicsExist(Collections.singleton(TestTopic.newOf("test")), 1_000);
     assertTrue(topics.contains("test"));
   }
 
   @Test
-  public void testEnsureExistsWithExisting() throws InterruptedException, ExecutionException, TimeoutException {
+  public void testEnsureTopicsExistWithExisting() throws InterruptedException, ExecutionException, TimeoutException {
     final MockLogTarget logTarget = new MockLogTarget();
     final AdminClient client = mock(AdminClient.class);
     admin = KafkaAdmin.of(client).withZlg(logTarget.logger());
@@ -78,13 +78,13 @@ public final class KafkaAdminTest {
       when(r.values()).thenReturn(futures);
       return r; 
     });
-    final Set<String> topics = admin.ensureExists(TestTopic.newOf("test"), 1_000);
+    final Set<String> topics = admin.ensureTopicsExist(Collections.singleton(TestTopic.newOf("test")), 1_000);
     assertFalse(topics.contains("test"));
     logTarget.entries().forLevel(LogLevel.DEBUG).containing("exists").assertCount(1);
   }
 
   @Test(expected=ExecutionException.class)
-  public void testEnsureExistsWithException() throws InterruptedException, ExecutionException, TimeoutException {
+  public void testEnsureTopicsExistWithException() throws InterruptedException, ExecutionException, TimeoutException {
     final AdminClient client = mock(AdminClient.class);
     admin = KafkaAdmin.of(client);
     when(client.createTopics(any(), any())).then(invocation -> {
@@ -96,11 +96,11 @@ public final class KafkaAdminTest {
       when(r.values()).thenReturn(futures);
       return r; 
     });
-    admin.ensureExists(TestTopic.newOf("test"), 1_000);
+    admin.ensureTopicsExist(Collections.singleton(TestTopic.newOf("test")), 1_000);
   }
 
   @Test
-  public void testEnsureExistsWithRetriableExceptionResolved() throws InterruptedException, ExecutionException, TimeoutException {
+  public void testEnsureTopicsExistWithRetriableExceptionResolved() throws InterruptedException, ExecutionException, TimeoutException {
     final AdminClient client = mock(AdminClient.class);
     final MockLogTarget logTarget = new MockLogTarget();
     admin = KafkaAdmin.of(client).withRetryAttempts(2).withRetryBackoff(0).withZlg(logTarget.logger());
@@ -118,13 +118,13 @@ public final class KafkaAdminTest {
       when(r.values()).thenReturn(futures);
       return r; 
     });
-    admin.ensureExists(TestTopic.newOf("test"), 1_000);
+    admin.ensureTopicsExist(Collections.singleton(TestTopic.newOf("test")), 1_000);
     assertEquals(2, invocationAttempts.get());
     logTarget.entries().forLevel(LogLevel.WARN).containing("attempt").assertCount(1);
   }
 
   @Test(expected=ExecutionException.class)
-  public void testEnsureExistsWithRetriableExceptionNotResolved() throws InterruptedException, ExecutionException, TimeoutException {
+  public void testEnsureTopicsExistWithRetriableExceptionNotResolved() throws InterruptedException, ExecutionException, TimeoutException {
     final AdminClient client = mock(AdminClient.class);
     admin = KafkaAdmin.of(client).withRetryAttempts(2).withRetryBackoff(0).withZlg(Zlg.nop());
     when(client.createTopics(any(), any())).then(invocation -> {
@@ -136,7 +136,7 @@ public final class KafkaAdminTest {
       when(r.values()).thenReturn(futures);
       return r; 
     });
-    admin.ensureExists(TestTopic.newOf("test"), 1_000);
+    admin.ensureTopicsExist(Collections.singleton(TestTopic.newOf("test")), 1_000);
   }
 
   @Test

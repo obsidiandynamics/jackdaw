@@ -21,7 +21,8 @@ public final class KafkaAdmin implements AutoCloseable {
 
   private int retryAttempts = 60;
 
-  private int retryBackoffMillis = 1_000;
+  /** The retry backoff interval, in milliseconds. */
+  private int retryBackoff = 1_000;
 
   private final AdminClient admin;
 
@@ -44,7 +45,7 @@ public final class KafkaAdmin implements AutoCloseable {
   }
 
   public KafkaAdmin withRetryBackoff(int retryBackoffMillis) {
-    this.retryBackoffMillis = retryBackoffMillis;
+    this.retryBackoff = retryBackoffMillis;
     return this;
   }
 
@@ -88,7 +89,7 @@ public final class KafkaAdmin implements AutoCloseable {
    *  Describes the cluster, blocking until all operations have completed or a timeout occurs.
    *  
    *  @param timeoutMillis The timeout to wait for.
-   *  @return The outcome.
+   *  @return The {@link DescribeClusterOutcome}.
    *  @throws InterruptedException If the thread was interrupted while waiting for the create outcome.
    *  @throws ExecutionException If an unexpected error occurred.
    *  @throws TimeoutException If the request timed out.
@@ -102,19 +103,19 @@ public final class KafkaAdmin implements AutoCloseable {
   }
 
   /**
-   *  Ensures that a given topic exists, creating one if necessary. This method blocks until all operations
+   *  Ensures that the given topics exist, creating missing ones if necessary. This method blocks until all operations
    *  have completed or a timeout occurs.
    *  
-   *  @param topic The topic.
+   *  @param topics The topics.
    *  @param timeoutMillis The timeout to wait for.
    *  @return The set of topics that were created. (Absence from the set implies that the topic had already existed.)
    *  @throws InterruptedException If the thread was interrupted while waiting for the create outcome.
    *  @throws ExecutionException If an unexpected error occurred.
    *  @throws TimeoutException If the request timed out.
    */
-  public Set<String> ensureExists(NewTopic topic, long timeoutMillis) throws InterruptedException, ExecutionException, TimeoutException {
+  public Set<String> ensureTopicsExist(Collection<NewTopic> topics, long timeoutMillis) throws InterruptedException, ExecutionException, TimeoutException {
     return runWithRetry(() -> {
-      final CreateTopicsResult result = admin.createTopics(Collections.singleton(topic), 
+      final CreateTopicsResult result = admin.createTopics(topics, 
                                                            new CreateTopicsOptions().timeoutMs((int) timeoutMillis));
       awaitFutures(timeoutMillis, result.values().values());
 
@@ -146,7 +147,7 @@ public final class KafkaAdmin implements AutoCloseable {
     try {
       return new Retry()
           .withExceptionMatcher(Retry.hasCauseThat(Retry.isA(RetriableException.class)))
-          .withBackoff(retryBackoffMillis)
+          .withBackoff(retryBackoff)
           .withAttempts(retryAttempts)
           .withFaultHandler(zlg::w)
           .withErrorHandler(zlg::e)
