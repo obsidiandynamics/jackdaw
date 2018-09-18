@@ -19,6 +19,7 @@ import org.apache.kafka.common.record.*;
 import org.junit.*;
 
 import com.obsidiandynamics.jackdaw.KafkaAdmin.*;
+import com.obsidiandynamics.verifier.*;
 import com.obsidiandynamics.zerolog.*;
 
 public final class KafkaAdminTest {
@@ -27,6 +28,11 @@ public final class KafkaAdminTest {
   @After
   public void after() {
     if (admin != null) admin.close();
+  }
+  
+  @Test
+  public void testDescribeClusterOutcomePojo() {
+    PojoVerifier.forClass(DescribeClusterOutcome.class).verify();
   }
 
   @Test
@@ -73,7 +79,7 @@ public final class KafkaAdminTest {
       final CreateTopicsResult r = mock(CreateTopicsResult.class);
       final Map<String, KafkaFuture<Void>> futures = new HashMap<>();
       final KafkaFutureImpl<Void> f = new KafkaFutureImpl<>();
-      f.completeExceptionally(new org.apache.kafka.common.errors.TopicExistsException("testEnsureExistsWithExisting"));
+      f.completeExceptionally(new org.apache.kafka.common.errors.TopicExistsException("simulated"));
       futures.put("test", f);
       when(r.values()).thenReturn(futures);
       return r; 
@@ -91,7 +97,7 @@ public final class KafkaAdminTest {
       final CreateTopicsResult r = mock(CreateTopicsResult.class);
       final Map<String, KafkaFuture<Void>> futures = new HashMap<>();
       final KafkaFutureImpl<Void> f = new KafkaFutureImpl<>();
-      f.completeExceptionally(new org.apache.kafka.common.errors.AuthorizationException("testEnsureExistsWithException"));
+      f.completeExceptionally(new org.apache.kafka.common.errors.AuthorizationException("simulated"));
       futures.put("test", f);
       when(r.values()).thenReturn(futures);
       return r; 
@@ -154,6 +160,71 @@ public final class KafkaAdminTest {
     assertEquals(Collections.singleton(Node.noNode()), o.getNodes());
     assertEquals(Node.noNode(), o.getController());
     assertEquals("test-cluster", o.getClusterId());
+  }
+
+  @Test
+  public void testDeleteTopicsExistingTopic() throws InterruptedException, ExecutionException, TimeoutException {
+    final AdminClient client = mock(AdminClient.class);
+    admin = KafkaAdmin.of(client);
+    when(client.deleteTopics(any(), any())).then(invocation -> {
+      final DeleteTopicsResult r = mock(DeleteTopicsResult.class);
+      final Map<String, KafkaFuture<Void>> futures = new HashMap<>();
+      futures.put("test", KafkaFuture.completedFuture(null));
+      when(r.values()).thenReturn(futures);
+      return r; 
+    });
+    final Set<String> topics = admin.deleteTopics(Collections.singleton("test"), 1_000);
+    assertTrue(topics.contains("test"));
+  }
+
+  @Test
+  public void testDeleteTopicsWithNonExistent() throws InterruptedException, ExecutionException, TimeoutException {
+    final MockLogTarget logTarget = new MockLogTarget();
+    final AdminClient client = mock(AdminClient.class);
+    admin = KafkaAdmin.of(client).withZlg(logTarget.logger());
+    when(client.deleteTopics(any(), any())).then(invocation -> {
+      final DeleteTopicsResult r = mock(DeleteTopicsResult.class);
+      final Map<String, KafkaFuture<Void>> futures = new HashMap<>();
+      final KafkaFutureImpl<Void> f = new KafkaFutureImpl<>();
+      f.completeExceptionally(new org.apache.kafka.common.errors.UnknownTopicOrPartitionException("simulated"));
+      futures.put("test", f);
+      when(r.values()).thenReturn(futures);
+      return r; 
+    });
+    final Set<String> topics = admin.deleteTopics(Collections.singleton("test"), 1_000);
+    assertFalse(topics.contains("test"));
+    logTarget.entries().forLevel(LogLevel.DEBUG).containing("does not exist").assertCount(1);
+  }
+
+
+  @Test(expected=ExecutionException.class)
+  public void testDeleteTopicsWithException() throws InterruptedException, ExecutionException, TimeoutException {
+    final AdminClient client = mock(AdminClient.class);
+    admin = KafkaAdmin.of(client);
+    when(client.deleteTopics(any(), any())).then(invocation -> {
+      final DeleteTopicsResult r = mock(DeleteTopicsResult.class);
+      final Map<String, KafkaFuture<Void>> futures = new HashMap<>();
+      final KafkaFutureImpl<Void> f = new KafkaFutureImpl<>();
+      f.completeExceptionally(new org.apache.kafka.common.errors.AuthorizationException("simulated"));
+      futures.put("test", f);
+      when(r.values()).thenReturn(futures);
+      return r; 
+    });
+    admin.deleteTopics(Collections.singleton("test"), 1_000);
+  }
+
+  @Test
+  public void testListTopics() throws InterruptedException, ExecutionException, TimeoutException {
+    final AdminClient client = mock(AdminClient.class);
+    admin = KafkaAdmin.of(client);
+    when(client.listTopics(any())).then(invocation -> {
+      final ListTopicsResult r = mock(ListTopicsResult.class);
+      final TopicListing listing = new TopicListing("test", false);
+      when(r.listings()).thenReturn(KafkaFuture.completedFuture(Collections.singletonList(listing)));
+      return r; 
+    });
+    final Set<String> topics = admin.listTopics(1_000);
+    assertTrue(topics.contains("test"));
   }
 
   @Test

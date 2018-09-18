@@ -18,6 +18,10 @@ import com.obsidiandynamics.retry.*;
 import com.obsidiandynamics.yconf.util.*;
 import com.obsidiandynamics.zerolog.*;
 
+/**
+ *  A wrapper around the {@link AdminClient} class that offers synchronous/blocking
+ *  semantics and provides transparent retry and error handling behaviour.
+ */
 public final class KafkaAdmin implements AutoCloseable {
   private Zlg zlg = Zlg.forDeclaringClass().get();
 
@@ -51,6 +55,14 @@ public final class KafkaAdmin implements AutoCloseable {
     return this;
   }
 
+  /**
+   *  Creates a {@link KafkaAdmin} wrapper for the given {@code config} and a factory for creating
+   *  an {@link AdminClient} from a set of {@link Properties}.
+   *  
+   *  @param config The cluster configuration.
+   *  @param adminClientFactory Factory for creating admin client instances.
+   *  @return The {@link KafkaAdmin} wrapper.
+   */
   public static KafkaAdmin forConfig(KafkaClusterConfig config, Function<Properties, AdminClient> adminClientFactory) {
     final String bootstrapServers = config.getCommonProps().getProperty(CONFIG_BOOTSTRAP_SERVERS);
     final Properties props = new PropsBuilder()
@@ -85,13 +97,19 @@ public final class KafkaAdmin implements AutoCloseable {
     public String getClusterId() {
       return clusterId;
     }
+
+    @Override
+    public String toString() {
+      return DescribeClusterOutcome.class.getSimpleName() + " [nodes=" + nodes + ", controller=" + controller + 
+          ", clusterId=" + clusterId + "]";
+    }
   }
 
   /**
    *  Describes the cluster, blocking until all operations have completed or a timeout occurs.
    *  
    *  @param timeoutMillis The timeout to wait for.
-   *  @return The {@link DescribeClusterOutcome}.
+   *  @return The resulting {@link DescribeClusterOutcome}.
    *  @throws ExecutionException If an unexpected error occurred.
    *  @throws InterruptedException If the thread was interrupted.
    *  @throws TimeoutException If a timeout occurred.
@@ -104,6 +122,15 @@ public final class KafkaAdmin implements AutoCloseable {
     });
   }
   
+  /**
+   *  Lists non-internal topics in a cluster.
+   *  
+   *  @param timeoutMillis The timeout to wait for.
+   *  @return A set of topic names.
+   *  @throws ExecutionException If an unexpected error occurred.
+   *  @throws InterruptedException If the thread was interrupted.
+   *  @throws TimeoutException If a timeout occurred.
+   */
   public Set<String> listTopics(int timeoutMillis) throws ExecutionException, TimeoutException, InterruptedException {
     return runWithRetry(() -> {
       final ListTopicsResult result = admin.listTopics(new ListTopicsOptions().timeoutMs(timeoutMillis));
@@ -115,10 +142,10 @@ public final class KafkaAdmin implements AutoCloseable {
   }
 
   /**
-   *  Ensures that the given topics exist, creating missing ones if necessary. This method blocks until all operations
-   *  have completed or a timeout occurs.
+   *  Ensures that the specified topics exist, creating missing ones if necessary. This method blocks 
+   *  until all operations have completed or a timeout occurs.
    *  
-   *  @param topics The topics.
+   *  @param topics The topics to create.
    *  @param timeoutMillis The timeout to wait for.
    *  @return The set of topics that were created. (Absence from the set implies that the topic had already existed.)
    *  @throws ExecutionException If an unexpected error occurred.
@@ -149,6 +176,22 @@ public final class KafkaAdmin implements AutoCloseable {
     });
   }
   
+  /**
+   *  Queues the specified topics for deletion if they exist. This method blocks until all operations have 
+   *  completed or a timeout occurs. <br>
+   *  
+   *  <b>Note:</b> even though this is a synchronous operation, the effect is merely the marking
+   *  of the topic for deletion on the broker. The actual deletion of a marked topic happens 
+   *  asynchronously, and at the discretion of the broker. The topic may linger for some time
+   *  after this method returns.
+   *  
+   *  @param topics The topics to delete.
+   *  @param timeoutMillis The timeout to wait for.
+   *  @return The set of topics that were marked for deletion. (Absence from the set implies that the topic didn't exist.)
+   *  @throws ExecutionException If an unexpected error occurred.
+   *  @throws InterruptedException If the thread was interrupted.
+   *  @throws TimeoutException If a timeout occurred.
+   */
   public Set<String> deleteTopics(Collection<String> topics, int timeoutMillis) throws ExecutionException, TimeoutException, InterruptedException {
     return runWithRetry(() -> {
       final DeleteTopicsResult result = admin.deleteTopics(topics, 
