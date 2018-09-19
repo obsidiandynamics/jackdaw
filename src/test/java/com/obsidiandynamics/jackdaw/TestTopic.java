@@ -6,6 +6,6 @@ final class TestTopic {
   private TestTopic() {}
   
   static NewTopic newOf(String topic) {
-    return new NewTopic(topic, (short) 1, (short) 1);
+    return new NewTopic(topic, 1, (short) 1);
   }
 }
