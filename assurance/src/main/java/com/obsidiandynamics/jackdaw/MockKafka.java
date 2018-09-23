@@ -205,6 +205,7 @@ public final class MockKafka<K, V> implements Kafka<K, V> {
       
       @Override 
       public void subscribe(Collection<String> topics, ConsumerRebalanceListener rebalanceListener) {
+        rebalanceListener.onPartitionsRevoked(Collections.emptySet());
         final List<TopicPartition> subscribedPartitions = new ArrayList<>();
         for (String topic : topics) {
           zlg.t("Assigning %s", z -> z.arg(topic).tag("MockKafka"));
