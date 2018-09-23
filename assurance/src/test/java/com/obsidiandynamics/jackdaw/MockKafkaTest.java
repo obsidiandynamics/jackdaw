@@ -10,6 +10,7 @@ import java.util.concurrent.*;
 import java.util.concurrent.atomic.*;
 
 import org.apache.kafka.clients.consumer.*;
+import org.apache.kafka.clients.consumer.internals.*;
 import org.apache.kafka.clients.producer.*;
 import org.apache.kafka.common.*;
 import org.junit.*;
@@ -260,7 +261,7 @@ public final class MockKafkaTest {
     consumerProps.put("group.id", "group");
     
     final Consumer<String, String> attached = kafka.getConsumer(consumerProps);
-    attached.subscribe(Arrays.asList("topic"));
+    attached.subscribe(Arrays.asList("topic"), new NoOpConsumerRebalanceListener());
     
     final Consumer<String, String> detached = kafka.getConsumer(consumerProps);
     detached.subscribe(Arrays.asList("topic"));

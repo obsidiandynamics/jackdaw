@@ -199,6 +199,10 @@ public final class MockKafka<K, V> implements Kafka<K, V> {
         }
       }
       
+      @Override public void subscribe(Collection<String> topics, ConsumerRebalanceListener rebalanceListener) {
+        subscribe(topics);
+      }
+      
       @Override public void subscribe(Collection<String> topics) {
         for (String topic : topics) {
           zlg.t("Assigning %s", z -> z.arg(topic).tag("MockKafka"));
