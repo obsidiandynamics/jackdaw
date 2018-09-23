@@ -6,6 +6,7 @@ import java.util.concurrent.*;
 import java.util.concurrent.atomic.*;
 
 import org.apache.kafka.clients.consumer.*;
+import org.apache.kafka.clients.consumer.internals.*;
 import org.apache.kafka.clients.producer.*;
 import org.apache.kafka.common.*;
 
@@ -84,7 +85,8 @@ public final class MockKafka<K, V> implements Kafka<K, V> {
             this.sendRuntimeExceptionGenerator = MockKafka.this.sendRuntimeExceptionGenerator;
           }
           
-          @Override public Future<RecordMetadata> send(ProducerRecord<K, V> r, Callback callback) {
+          @Override 
+          public Future<RecordMetadata> send(ProducerRecord<K, V> r, Callback callback) {
             if (closed.get()) throw new IllegalStateException("Cannot send over a closed producer");
             final RuntimeException generatedRuntime = sendRuntimeExceptionGenerator.inspect(r);
             if (generatedRuntime != null) throw generatedRuntime;
@@ -106,7 +108,8 @@ public final class MockKafka<K, V> implements Kafka<K, V> {
           }
           
           final AtomicBoolean closed = new AtomicBoolean();
-          @Override public void close(long timeout, TimeUnit timeUnit) {
+          @Override 
+          public void close(long timeout, TimeUnit timeUnit) {
             if (closed.compareAndSet(false, true)) {
               super.close();
             }
@@ -190,7 +193,8 @@ public final class MockKafka<K, V> implements Kafka<K, V> {
         this.commitExceptionGenerator = MockKafka.this.commitExceptionGenerator;
       }
       
-      @Override public void commitAsync(Map<TopicPartition, OffsetAndMetadata> offsets, OffsetCommitCallback callback) {
+      @Override 
+      public void commitAsync(Map<TopicPartition, OffsetAndMetadata> offsets, OffsetCommitCallback callback) {
         final Exception generated = commitExceptionGenerator.inspect(offsets);
         if (generated != null) {
           if (callback != null) callback.onComplete(offsets, generated);
@@ -199,11 +203,9 @@ public final class MockKafka<K, V> implements Kafka<K, V> {
         }
       }
       
-      @Override public void subscribe(Collection<String> topics, ConsumerRebalanceListener rebalanceListener) {
-        subscribe(topics);
-      }
-      
-      @Override public void subscribe(Collection<String> topics) {
+      @Override 
+      public void subscribe(Collection<String> topics, ConsumerRebalanceListener rebalanceListener) {
+        final List<TopicPartition> subscribedPartitions = new ArrayList<>();
         for (String topic : topics) {
           zlg.t("Assigning %s", z -> z.arg(topic).tag("MockKafka"));
           synchronized (lock) {
@@ -222,6 +224,7 @@ public final class MockKafka<K, V> implements Kafka<K, V> {
                 }
               }
             }
+            subscribedPartitions.addAll(partitions);
 
             assign(partitions);
             updateBeginningOffsets(offsetRecords);
@@ -230,9 +233,16 @@ public final class MockKafka<K, V> implements Kafka<K, V> {
             }
           }
         }
+        rebalanceListener.onPartitionsAssigned(subscribedPartitions);
       }
       
-      @Override public List<PartitionInfo> partitionsFor(String topic) {
+      @Override 
+      public void subscribe(Collection<String> topics) {
+        subscribe(topics, new NoOpConsumerRebalanceListener());
+      }
+      
+      @Override 
+      public List<PartitionInfo> partitionsFor(String topic) {
         final List<PartitionInfo> newInfos = new ArrayList<>(maxPartitions);
         final Map<TopicPartition, Long> offsets = new HashMap<>(maxPartitions);
         
@@ -248,7 +258,8 @@ public final class MockKafka<K, V> implements Kafka<K, V> {
         return newInfos;
       }
       
-      @Override public ConsumerRecords<K, V> poll(Duration timeout) {
+      @Override 
+      public ConsumerRecords<K, V> poll(Duration timeout) {
         final long timeoutMillis = timeout.toMillis();
         // super.poll() disregards the timeout, resulting in a spin loop in the absence of records
         // and resource exhaustion on single-CPU machines
@@ -275,7 +286,8 @@ public final class MockKafka<K, V> implements Kafka<K, V> {
         }
       }
       
-      @Override public void close() {
+      @Override 
+      public void close() {
         synchronized (lock) {
           consumers.remove(this);
         }
