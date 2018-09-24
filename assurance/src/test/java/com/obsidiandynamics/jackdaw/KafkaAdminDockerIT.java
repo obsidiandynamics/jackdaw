@@ -42,7 +42,7 @@ public final class KafkaAdminDockerIT {
       final Set<String> allTopics = admin.listTopics(DEF_TIMEOUT);
       final String testTopicPrefix = getTopicPrefix();
       final List<String> testTopics = allTopics.stream().filter(topic -> topic.startsWith(testTopicPrefix)).collect(Collectors.toList());
-      final Set<String> deleted = admin.deleteTopics(testTopics, 10_000);
+      final Set<String> deleted = admin.deleteTopics(testTopics, DEF_TIMEOUT);
       assertThat(deleted).containsExactlyInAnyOrderElementsOf(testTopics);
     }
   }
