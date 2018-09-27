@@ -106,6 +106,7 @@ public final class KafkaAdminDockerIT {
       for (;;) {
         final ConsumerRecords<String, String> records = consumer.poll(Duration.ofMillis(100));
         if (! records.isEmpty()) {
+          consumer.commitSync();
           break;
         }
       }
