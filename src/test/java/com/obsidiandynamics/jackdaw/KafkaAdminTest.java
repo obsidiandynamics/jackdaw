@@ -196,7 +196,6 @@ public final class KafkaAdminTest {
     logTarget.entries().forLevel(LogLevel.DEBUG).containing("does not exist").assertCount(1);
   }
 
-
   @Test(expected=ExecutionException.class)
   public void testDeleteTopicsWithException() throws InterruptedException, ExecutionException, TimeoutException {
     final AdminClient client = mock(AdminClient.class);
@@ -225,6 +224,70 @@ public final class KafkaAdminTest {
     });
     final Set<String> topics = admin.listTopics(1_000);
     assertTrue(topics.contains("test"));
+  }
+
+  @Test
+  public void testListConsumerGroups() throws InterruptedException, ExecutionException, TimeoutException {
+    final AdminClient client = mock(AdminClient.class);
+    admin = KafkaAdmin.of(client);
+    when(client.listConsumerGroups(any())).then(invocation -> {
+      final ListConsumerGroupsResult r = mock(ListConsumerGroupsResult.class);
+      final ConsumerGroupListing listing = new ConsumerGroupListing("test", false);
+      when(r.all()).thenReturn(KafkaFuture.completedFuture(Collections.singletonList(listing)));
+      return r; 
+    });
+    final Set<String> topics = admin.listConsumerGroups(1_000);
+    assertTrue(topics.contains("test"));
+  }
+
+  @Test
+  public void testDeleteConsumerGroupsExistingGroup() throws InterruptedException, ExecutionException, TimeoutException {
+    final AdminClient client = mock(AdminClient.class);
+    admin = KafkaAdmin.of(client);
+    when(client.deleteConsumerGroups(any(), any())).then(invocation -> {
+      final DeleteConsumerGroupsResult r = mock(DeleteConsumerGroupsResult.class);
+      final Map<String, KafkaFuture<Void>> futures = new HashMap<>();
+      futures.put("test", KafkaFuture.completedFuture(null));
+      when(r.deletedGroups()).thenReturn(futures);
+      return r; 
+    });
+    final Set<String> topics = admin.deleteConsumerGroups(Collections.singleton("test"), 1_000);
+    assertTrue(topics.contains("test"));
+  }
+
+  @Test
+  public void testDeleteConsumerGroupsWithGroupNotEmpty() throws InterruptedException, ExecutionException, TimeoutException {
+    final MockLogTarget logTarget = new MockLogTarget();
+    final AdminClient client = mock(AdminClient.class);
+    admin = KafkaAdmin.of(client).withZlg(logTarget.logger());
+    when(client.deleteConsumerGroups(any(), any())).then(invocation -> {
+      final DeleteConsumerGroupsResult r = mock(DeleteConsumerGroupsResult.class);
+      final Map<String, KafkaFuture<Void>> futures = new HashMap<>();
+      final KafkaFutureImpl<Void> f = new KafkaFutureImpl<>();
+      f.completeExceptionally(new org.apache.kafka.common.errors.GroupNotEmptyException("simulated"));
+      futures.put("test", f);
+      when(r.deletedGroups()).thenReturn(futures);
+      return r; 
+    });
+    final Set<String> topics = admin.deleteConsumerGroups(Collections.singleton("test"), 1_000);
+    assertFalse(topics.contains("test"));
+    logTarget.entries().forLevel(LogLevel.DEBUG).containing("not empty").assertCount(1);
+  }
+
+  @Test(expected=ExecutionException.class)
+  public void testDeleteConsumerGroupsWithException() throws InterruptedException, ExecutionException, TimeoutException {
+    final AdminClient client = mock(AdminClient.class);
+    admin = KafkaAdmin.of(client);
+    when(client.deleteConsumerGroups(any(), any())).then(invocation -> {
+      final DeleteConsumerGroupsResult r = mock(DeleteConsumerGroupsResult.class);
+      final Map<String, KafkaFuture<Void>> futures = new HashMap<>();
+      final KafkaFutureImpl<Void> f = new KafkaFutureImpl<>();
+      f.completeExceptionally(new org.apache.kafka.common.errors.AuthorizationException("simulated"));
+      futures.put("test", f);
+      when(r.deletedGroups()).thenReturn(futures);
+      return r; 
+    });
+    admin.deleteConsumerGroups(Collections.singleton("test"), 1_000);
   }
 
   @Test

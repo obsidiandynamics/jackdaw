@@ -215,7 +215,66 @@ public final class KafkaAdmin implements AutoCloseable {
       return deleted;
     });
   }
+  
+  /**
+   *  Lists consumer groups.
+   *  
+   *  @param timeoutMillis The timeout to wait for.
+   *  @return A set of group IDs.
+   *  @throws ExecutionException If an unexpected error occurred.
+   *  @throws InterruptedException If the thread was interrupted.
+   *  @throws TimeoutException If a timeout occurred.
+   */
+  public Set<String> listConsumerGroups(int timeoutMillis) throws ExecutionException, TimeoutException, InterruptedException {
+    return runWithRetry(() -> {
+      final ListConsumerGroupsResult result = admin.listConsumerGroups(new ListConsumerGroupsOptions().timeoutMs(timeoutMillis));
+      awaitFutures(timeoutMillis, result.all());
 
+      final Collection<ConsumerGroupListing> listings = result.all().get();
+      return listings.stream().map(ConsumerGroupListing::groupId).collect(Collectors.toSet());
+    });
+  }
+
+  /**
+   *  Queues the specified consumer groups for deletion if they exist. This method blocks until all operations have 
+   *  completed or a timeout occurs. <br>
+   *  
+   *  <b>Note:</b> even though this is a synchronous operation, the effect is merely the marking
+   *  of the group for deletion on the broker. The actual deletion of a marked group happens 
+   *  asynchronously, and at the discretion of the broker. The topic may linger for some time
+   *  after this method returns.
+   *  
+   *  @param groups The group IDs to delete.
+   *  @param timeoutMillis The timeout to wait for.
+   *  @return The set of groups that were marked for deletion. (Absence from the set implies that the group didn't exist.)
+   *  @throws ExecutionException If an unexpected error occurred.
+   *  @throws InterruptedException If the thread was interrupted.
+   *  @throws TimeoutException If a timeout occurred.
+   */
+  public Set<String> deleteConsumerGroups(Collection<String> groups, int timeoutMillis) throws ExecutionException, TimeoutException, InterruptedException {
+    return runWithRetry(() -> {
+      final DeleteConsumerGroupsResult result = admin.deleteConsumerGroups(groups, 
+                                                                           new DeleteConsumerGroupsOptions().timeoutMs(timeoutMillis));
+      awaitFutures(timeoutMillis, result.deletedGroups().values());
+
+      final Set<String> deleted = new HashSet<>(groups.size());
+      for (Map.Entry<String, KafkaFuture<Void>> entry : result.deletedGroups().entrySet()) {
+        try {
+          entry.getValue().get();
+          zlg.d("Deleted consumer group %s", z -> z.arg(entry::getKey));
+          deleted.add(entry.getKey());
+        } catch (ExecutionException e) {
+          if (e.getCause() instanceof GroupNotEmptyException) {
+            zlg.d("Group %s not empty", z -> z.arg(entry::getKey));
+          } else {
+            throw e;
+          }
+        }
+      }
+      return deleted;
+    });
+  }
+  
   static final class UnhandledException extends RuntimeException {
     private static final long serialVersionUID = 1L;
     
