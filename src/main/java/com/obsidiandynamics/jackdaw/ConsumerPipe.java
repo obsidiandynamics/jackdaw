@@ -18,13 +18,14 @@ public final class ConsumerPipe<K, V> implements Terminable, Joinable {
   
   public ConsumerPipe(ConsumerPipeConfig config, RecordHandler<K, V> handler, String threadName) {
     this.handler = handler;
-    queue = new LinkedBlockingQueue<>(config.getBacklogBatches());
     if (config.isAsync()) {
+      queue = new LinkedBlockingQueue<>(config.getBacklogBatches());
       thread = WorkerThread.builder()
           .withOptions(new WorkerOptions().daemon().withName(threadName))
           .onCycle(this::cycle)
           .buildAndStart();
     } else {
+      queue = null;
       thread = null;
     }
   }
@@ -33,7 +34,7 @@ public final class ConsumerPipe<K, V> implements Terminable, Joinable {
    *  Pushes newly received records through the pipeline.
    *  
    *  @param records The records to push.
-   *  @return True if records were enqueued (in async mode). Sync mode always returns true.
+   *  @return True if records were enqueued (in async mode). Sync mode <em>always</em> returns true.
    *  @throws InterruptedException If this thread was interrupted (only in async mode).
    */
   public boolean receive(ConsumerRecords<K, V> records) throws InterruptedException {
@@ -50,10 +51,8 @@ public final class ConsumerPipe<K, V> implements Terminable, Joinable {
   }
   
   private void cycle(WorkerThread t) throws InterruptedException {
-    for (;;) {
-      final ConsumerRecords<K, V> records = queue.take();
-      handler.onReceive(records);
-    }
+    final ConsumerRecords<K, V> records = queue.take();
+    handler.onReceive(records);
   }
   
   @Override
