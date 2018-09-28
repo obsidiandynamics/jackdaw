@@ -23,9 +23,9 @@ public final class ProducerPipe<K, V> implements Terminable, Joinable {
     }
   }
   
-  private final NodeQueue<AsyncRecord<K, V>> queue = new NodeQueue<>();
+  private final NodeQueue<AsyncRecord<K, V>> queue;
   
-  private final QueueConsumer<AsyncRecord<K, V>> queueConsumer = queue.consumer();
+  private final QueueConsumer<AsyncRecord<K, V>> queueConsumer;
   
   private final Producer<K, V> producer;
   
@@ -41,11 +41,15 @@ public final class ProducerPipe<K, V> implements Terminable, Joinable {
     this.producer = producer;
     this.exceptionHandler = exceptionHandler;
     if (config.isAsync()) {
+      queue = new NodeQueue<>();
+      queueConsumer = queue.consumer();
       thread = WorkerThread.builder()
           .withOptions(new WorkerOptions().daemon().withName(threadName))
           .onCycle(this::cycle)
           .buildAndStart();
     } else {
+      queue = null;
+      queueConsumer = null;
       thread = null;
     }
   }
