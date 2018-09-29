@@ -39,15 +39,16 @@ allprojects {
   
   ext {
     assertjVersion = "3.11.1"
-    fulcrumVersion = "0.17.0"
+    commonsLangVersion = "3.8.1"
+    fulcrumVersion = "0.18.0"
     junitVersion = "4.12"
     kafkaVersion = "2.0.0"
     log4jVersion = "1.2.17"
     mockitoVersion = "2.22.0"
     pojotesterVersion = "0.7.6"
     slf4jVersion = "1.7.25"
-    yconfVersion = "0.7.0"
-    zerologVersion = "0.18.0"
+    yconfVersion = "0.8.0"
+    zerologVersion = "0.19.0"
   }
   
   dependencies {
@@ -67,6 +68,10 @@ allprojects {
     testRuntime "org.slf4j:slf4j-api:${slf4jVersion}"
     testRuntime "org.slf4j:slf4j-log4j12:1.7.25"
     testRuntime "log4j:log4j:${log4jVersion}"
+    
+    // Dependency fix: pojo-tester:0.7.6 depends on commons-lang3:3.7.0, which doesn't support Java 11;
+    // including commons-lang3:3.8.1 fixes this in the interim.
+    testRuntime "org.apache.commons:commons-lang3:${commonsLangVersion}"
   }
 
   test {
