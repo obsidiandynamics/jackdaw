@@ -25,14 +25,14 @@ public final class MockKafka<K, V> implements Kafka<K, V> {
   
   private FallibleMockProducer<K, V> producer;
   
-  private final List<FallibleMockConsumer<K, V>> consumers = new ArrayList<>();
+  private final List<FallibleMockConsumer<K, V>> consumers = new CopyOnWriteArrayList<>();
   
-  private List<ConsumerRecord<K, V>> backlog = new ArrayList<>();
+  private List<ConsumerRecord<K, V>> backlog = new CopyOnWriteArrayList<>();
   
   private final Object lock = new Object();
   
   /** Tracks presence of group members. */
-  private final Set<String> groups = new HashSet<>();
+  private final Set<String> groups = new CopyOnWriteArraySet<>();
   
   private ExceptionGenerator<ProducerRecord<K, V>, Exception> sendCallbackExceptionGenerator = ExceptionGenerator.never();
   private ExceptionGenerator<ProducerRecord<K, V>, RuntimeException> sendRuntimeExceptionGenerator = ExceptionGenerator.never();
@@ -179,15 +179,26 @@ public final class MockKafka<K, V> implements Kafka<K, V> {
     }
   }
   
-  private FallibleMockConsumer<K, V> createDetachedConsumer() {
-    return createConsumer(new Object(), new ArrayList<>(1));
-  }
-  
   private FallibleMockConsumer<K, V> createAttachedConsumer() {
-    return createConsumer(lock, consumers);
+    return createConsumer(true);
   }
   
-  private FallibleMockConsumer<K, V> createConsumer(Object lock, List<FallibleMockConsumer<K, V>> consumers) {
+  private FallibleMockConsumer<K, V> createDetachedConsumer() {
+    return createConsumer(false);
+  }
+  
+  private FallibleMockConsumer<K, V> createConsumer(boolean attached) {
+    final Object lock;
+    final List<FallibleMockConsumer<K, V>> consumers;
+    if (attached) {
+      lock = this.lock;
+      consumers = this.consumers;
+    } else {
+      lock = new Object();
+      consumers = new ArrayList<>(1);
+    }
+    
+    
     final FallibleMockConsumer<K, V> consumer = new FallibleMockConsumer<K, V>(OffsetResetStrategy.EARLIEST) {
       {
         this.commitExceptionGenerator = MockKafka.this.commitExceptionGenerator;
@@ -205,36 +216,38 @@ public final class MockKafka<K, V> implements Kafka<K, V> {
       
       @Override 
       public void subscribe(Collection<String> topics, ConsumerRebalanceListener rebalanceListener) {
-        rebalanceListener.onPartitionsRevoked(Collections.emptySet());
-        final List<TopicPartition> subscribedPartitions = new ArrayList<>();
-        for (String topic : topics) {
-          zlg.t("Assigning %s", z -> z.arg(topic).tag("MockKafka"));
-          synchronized (lock) {
-            final List<TopicPartition> partitions = new ArrayList<>(maxPartitions);
-            final Map<TopicPartition, Long> offsetRecords = new HashMap<>();
-            final List<ConsumerRecord<K, V>> records = new ArrayList<>();
-            
-            for (int partIdx = 0; partIdx < maxPartitions; partIdx++) {
-              final TopicPartition part = new TopicPartition(topic, partIdx);
-              partitions.add(part);
-              offsetRecords.put(part, 0L);
+        if (attached) {
+          rebalanceListener.onPartitionsRevoked(Collections.emptySet());
+          final List<TopicPartition> subscribedPartitions = new ArrayList<>();
+          for (String topic : topics) {
+            zlg.t("Assigning %s", z -> z.arg(topic).tag("MockKafka"));
+            synchronized (lock) {
+              final List<TopicPartition> partitions = new ArrayList<>(maxPartitions);
+              final Map<TopicPartition, Long> offsetRecords = new HashMap<>();
+              final List<ConsumerRecord<K, V>> records = new ArrayList<>();
               
-              for (ConsumerRecord<K, V> cr : backlog) {
-                if (cr.topic().equals(topic) && cr.partition() == partIdx) {
-                  records.add(cr);
+              for (int partIdx = 0; partIdx < maxPartitions; partIdx++) {
+                final TopicPartition part = new TopicPartition(topic, partIdx);
+                partitions.add(part);
+                offsetRecords.put(part, 0L);
+                
+                for (ConsumerRecord<K, V> cr : backlog) {
+                  if (cr.topic().equals(topic) && cr.partition() == partIdx) {
+                    records.add(cr);
+                  }
                 }
               }
-            }
-            subscribedPartitions.addAll(partitions);
-
-            assign(partitions);
-            updateBeginningOffsets(offsetRecords);
-            for (ConsumerRecord<K, V> cr : records) {
-              addRecord(cr);
+              subscribedPartitions.addAll(partitions);
+  
+              assign(partitions);
+              updateBeginningOffsets(offsetRecords);
+              for (ConsumerRecord<K, V> cr : records) {
+                addRecord(cr);
+              }
             }
           }
+          rebalanceListener.onPartitionsAssigned(subscribedPartitions);
         }
-        rebalanceListener.onPartitionsAssigned(subscribedPartitions);
       }
       
       @Override 
