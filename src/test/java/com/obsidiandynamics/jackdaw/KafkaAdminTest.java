@@ -270,8 +270,27 @@ public final class KafkaAdminTest {
       return r; 
     });
     final Set<String> topics = admin.deleteConsumerGroups(Collections.singleton("test"), 1_000);
-    assertFalse(topics.contains("test"));
+    assertTrue(topics.contains("test"));
     logTarget.entries().forLevel(LogLevel.DEBUG).containing("not empty").assertCount(1);
+  }
+
+  @Test
+  public void testDeleteConsumerGroupsWithGroupNotFound() throws InterruptedException, ExecutionException, TimeoutException {
+    final MockLogTarget logTarget = new MockLogTarget();
+    final AdminClient client = mock(AdminClient.class);
+    admin = KafkaAdmin.of(client).withZlg(logTarget.logger());
+    when(client.deleteConsumerGroups(any(), any())).then(invocation -> {
+      final DeleteConsumerGroupsResult r = mock(DeleteConsumerGroupsResult.class);
+      final Map<String, KafkaFuture<Void>> futures = new HashMap<>();
+      final KafkaFutureImpl<Void> f = new KafkaFutureImpl<>();
+      f.completeExceptionally(new org.apache.kafka.common.errors.GroupIdNotFoundException("simulated"));
+      futures.put("test", f);
+      when(r.deletedGroups()).thenReturn(futures);
+      return r; 
+    });
+    final Set<String> topics = admin.deleteConsumerGroups(Collections.singleton("test"), 1_000);
+    assertFalse(topics.contains("test"));
+    logTarget.entries().forLevel(LogLevel.DEBUG).containing("not found").assertCount(1);
   }
 
   @Test(expected=ExecutionException.class)

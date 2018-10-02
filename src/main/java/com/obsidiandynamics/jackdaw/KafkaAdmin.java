@@ -265,8 +265,11 @@ public final class KafkaAdmin implements AutoCloseable {
           deleted.add(entry.getKey());
         } catch (ExecutionException e) {
           if (e.getCause() instanceof GroupNotEmptyException) {
-            zlg.d("Group %s not empty", z -> z.arg(entry::getKey));
-          } else {
+            zlg.d("Group %s not empty (will be deleted later)", z -> z.arg(entry::getKey));
+            deleted.add(entry.getKey());
+          } else if (e.getCause() instanceof GroupIdNotFoundException) {
+            zlg.d("Group %s not found", z -> z.arg(entry::getKey));
+          }  else {
             throw e;
           }
         }
