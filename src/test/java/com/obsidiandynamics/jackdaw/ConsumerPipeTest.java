@@ -58,13 +58,4 @@ public final class ConsumerPipeTest {
     
     verify(handler).onReceive(eq(records));
   }
-  
-  @Test
-  public void testReceiveEmptySync() throws InterruptedException {
-    final RecordHandler<String, String> handler = Classes.cast(mock(RecordHandler.class));
-    pipe = new ConsumerPipe<>(new ConsumerPipeConfig().withAsync(false), handler, ConsumerPipe.class.getSimpleName());
-    
-    assertFalse(pipe.receive(new ConsumerRecords<>(Collections.emptyMap())));
-    verifyNoMoreInteractions(handler);
-  }
 }

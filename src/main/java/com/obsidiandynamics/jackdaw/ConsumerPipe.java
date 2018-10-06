@@ -1,10 +1,13 @@
 package com.obsidiandynamics.jackdaw;
 
+import static com.obsidiandynamics.func.Functions.*;
+
 import java.util.*;
 import java.util.concurrent.*;
 
 import org.apache.kafka.clients.consumer.*;
 
+import com.obsidiandynamics.func.*;
 import com.obsidiandynamics.jackdaw.AsyncReceiver.*;
 import com.obsidiandynamics.worker.*;
 import com.obsidiandynamics.worker.Terminator;
@@ -19,6 +22,7 @@ public final class ConsumerPipe<K, V> implements Terminable, Joinable {
   public ConsumerPipe(ConsumerPipeConfig config, RecordHandler<K, V> handler, String threadName) {
     this.handler = handler;
     if (config.isAsync()) {
+      mustExist(threadName, NullArgumentException::new);
       queue = new LinkedBlockingQueue<>(config.getBacklogBatches());
       thread = WorkerThread.builder()
           .withOptions(new WorkerOptions().daemon().withName(threadName))
@@ -38,15 +42,11 @@ public final class ConsumerPipe<K, V> implements Terminable, Joinable {
    *  @throws InterruptedException If this thread was interrupted (only in async mode).
    */
   public boolean receive(ConsumerRecords<K, V> records) throws InterruptedException {
-    if (records.count() != 0) {
-      if (thread != null) {
-        return queue.offer(records);
-      } else {
-        handler.onReceive(records);
-        return true;
-      }
+    if (thread != null) {
+      return queue.offer(records);
     } else {
-      return false;
+      handler.onReceive(records);
+      return true;
     }
   }
   
