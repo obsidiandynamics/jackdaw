@@ -22,7 +22,7 @@ public final class ConsumerPipe<K, V> implements Terminable, Joinable {
   public ConsumerPipe(ConsumerPipeConfig config, RecordHandler<K, V> handler, String threadName) {
     this.handler = handler;
     if (config.isAsync()) {
-      mustExist(threadName, NullArgumentException::new);
+      mustExist(threadName, "Thread name cannot be null");
       queue = new LinkedBlockingQueue<>(config.getBacklogBatches());
       thread = WorkerThread.builder()
           .withOptions(new WorkerOptions().daemon().withName(threadName))
