@@ -1,5 +1,4 @@
 rootProject.name = "jackdaw"
-enableFeaturePreview('STABLE_PUBLISHING') // Gradle 5.0 forward compatibility testing
 
 include "jackdaw-assurance"
 project(":jackdaw-assurance").projectDir = new File(settingsDir, "assurance")
