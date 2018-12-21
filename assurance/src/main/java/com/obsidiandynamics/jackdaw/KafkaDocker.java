@@ -12,7 +12,7 @@ import com.obsidiandynamics.zerolog.*;
 public final class KafkaDocker {
   private Zlg zlg = Zlg.forDeclaringClass().get();
   
-  private String project = "jackdaw";
+  private String project = "kafka";
   
   private String composeFile = "stack/docker-compose/docker-compose.yaml";
   
