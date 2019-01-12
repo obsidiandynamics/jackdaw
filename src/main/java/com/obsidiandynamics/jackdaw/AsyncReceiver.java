@@ -37,13 +37,9 @@ public final class AsyncReceiver<K, V> implements Terminable, Joinable {
   }
   
   private void cycle(WorkerThread thread) throws InterruptedException {
-    final ConsumerRecords<K, V> records;
     try {
-      records = consumer.poll(Duration.ofMillis(pollTimeoutMillis));
-      
-      if (! records.isEmpty()) {
-        recordHandler.onReceive(records);
-      }
+      final ConsumerRecords<K, V> records = consumer.poll(Duration.ofMillis(pollTimeoutMillis));
+      recordHandler.onReceive(records);
     } catch (InterruptedException e) {
       throw e;
     } catch (org.apache.kafka.common.errors.InterruptException e) {

@@ -18,7 +18,6 @@ import org.mockito.stubbing.*;
 import com.obsidiandynamics.await.*;
 import com.obsidiandynamics.func.*;
 import com.obsidiandynamics.jackdaw.AsyncReceiver.*;
-import com.obsidiandynamics.threads.*;
 
 
 public final class AsyncReceiverTest {
@@ -98,8 +97,13 @@ public final class AsyncReceiverTest {
                                                         () -> new ConsumerRecords<>(Collections.emptyMap())));
     receiver = new AsyncReceiver<String, String>(consumer, 1, "TestThread", recordHandler, exceptionHandler);
     
-    Threads.sleep(10);
-    verify(recordHandler, never()).onReceive(any());
+    wait.until(() -> {
+      try {
+        verify(recordHandler, atLeastOnce()).onReceive(isNotNull());
+      } catch (InterruptedException e) {
+        throw new AssertionError(e);
+      }
+    });
     verify(exceptionHandler, never()).onException(any(), any());
   }
 

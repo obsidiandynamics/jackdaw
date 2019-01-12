@@ -30,7 +30,7 @@ public final class ConsumerPipeTest {
   }
   
   @Test
-  public void testReceiveAsync() throws InterruptedException {
+  public void testReceive_async() throws InterruptedException {
     final RecordHandler<String, String> handler = Classes.cast(mock(RecordHandler.class));
     pipe = new ConsumerPipe<>(new ConsumerPipeConfig().withAsync(true), handler, ConsumerPipe.class.getSimpleName());
     
@@ -48,7 +48,23 @@ public final class ConsumerPipeTest {
   }
   
   @Test
-  public void testReceiveSync() throws InterruptedException {
+  public void testReceive_asyncEmpty() throws InterruptedException {
+    final RecordHandler<String, String> handler = Classes.cast(mock(RecordHandler.class));
+    pipe = new ConsumerPipe<>(new ConsumerPipeConfig().withAsync(true), handler, ConsumerPipe.class.getSimpleName());
+    
+    final ConsumerRecords<String, String> records = new ConsumerRecords<>(Collections.emptyMap());
+    assertTrue(pipe.receive(records));
+    
+    Thread.sleep(10);
+    try {
+      verify(handler, never()).onReceive(any());
+    } catch (InterruptedException e) {
+      throw new AssertionError("Unexpected exception", e);
+    }
+  }
+  
+  @Test
+  public void testReceive_sync() throws InterruptedException {
     final RecordHandler<String, String> handler = Classes.cast(mock(RecordHandler.class));
     pipe = new ConsumerPipe<>(new ConsumerPipeConfig().withAsync(false), handler, ConsumerPipe.class.getSimpleName());
     
