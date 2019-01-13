@@ -46,8 +46,12 @@ public final class KafkaClusterConfig {
     return props;
   }
   
-  public KafkaClusterConfig withCommonProps(Map<Object, Object> common) {
+  public void setCommonProps(Map<Object, Object> common) {
     this.common.putAll(common);
+  }
+  
+  public KafkaClusterConfig withCommonProps(Map<Object, Object> common) {
+    setCommonProps(common);
     return this;
   }
 
@@ -57,8 +61,12 @@ public final class KafkaClusterConfig {
     return props;
   }
   
-  public KafkaClusterConfig withProducerProps(Map<Object, Object> producer) {
+  public void setProducerProps(Map<Object, Object> producer) {
     this.producer.putAll(producer);
+  }
+  
+  public KafkaClusterConfig withProducerProps(Map<Object, Object> producer) {
+    setProducerProps(producer);
     return this;
   }
   
@@ -68,8 +76,12 @@ public final class KafkaClusterConfig {
     return props;
   }
   
-  public KafkaClusterConfig withConsumerProps(Map<Object, Object> consumer) {
+  public void setConsumerProps(Map<Object, Object> consumer) {
     this.consumer.putAll(consumer);
+  }
+  
+  public KafkaClusterConfig withConsumerProps(Map<Object, Object> consumer) {
+    setConsumerProps(consumer);
     return this;
   }
 

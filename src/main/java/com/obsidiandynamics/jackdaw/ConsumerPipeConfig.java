@@ -10,22 +10,30 @@ public final class ConsumerPipeConfig {
   @YInject
   private int backlogBatches = 128;
   
-  public ConsumerPipeConfig withAsync(boolean async) {
-    this.async = async;
-    return this;
-  }
-  
-  boolean isAsync() {
+  public boolean isAsync() {
     return async;
   }
   
-  public ConsumerPipeConfig withBacklogBatches(int backlogBatches) {
-    this.backlogBatches = backlogBatches;
+  public void setAsync(boolean async) {
+    this.async = async;
+  }
+
+  public ConsumerPipeConfig withAsync(boolean async) {
+    setAsync(async);
     return this;
   }
   
-  int getBacklogBatches() {
+  public int getBacklogBatches() {
     return backlogBatches;
+  }
+  
+  public void setBacklogBatches(int backlogBatches) {
+    this.backlogBatches = backlogBatches;
+  }
+  
+  public ConsumerPipeConfig withBacklogBatches(int backlogBatches) {
+    setBacklogBatches(backlogBatches);
+    return this;
   }
   
   @Override

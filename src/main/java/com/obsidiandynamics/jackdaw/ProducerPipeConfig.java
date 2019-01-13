@@ -7,13 +7,17 @@ public final class ProducerPipeConfig {
   @YInject
   private boolean async = true;
   
-  public ProducerPipeConfig withAsync(boolean async) {
-    this.async = async;
-    return this;
+  public boolean isAsync() {
+    return async;
   }
   
-  boolean isAsync() {
-    return async;
+  public void setAsync(boolean async) {
+    this.async = async;
+  }
+
+  public ProducerPipeConfig withAsync(boolean async) {
+    setAsync(async);
+    return this;
   }
   
   @Override

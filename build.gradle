@@ -40,6 +40,7 @@ allprojects {
   ext {
     assertjVersion = "3.11.1"
     commonsLangVersion = "3.8.1"
+    equalsverifierVersion = "3.1.4"
     fulcrumVersion = "0.28.0"
     junitVersion = "4.12"
     kafkaVersion = "2.1.0"
@@ -64,6 +65,7 @@ allprojects {
     testCompile "org.apache.kafka:kafka-clients:${kafkaVersion}"
     testCompile "org.assertj:assertj-core:${assertjVersion}"
     testCompile "pl.pojo:pojo-tester:${pojotesterVersion}"
+    testCompile "nl.jqno.equalsverifier:equalsverifier:${equalsverifierVersion}"
     testRuntime "com.obsidiandynamics.zerolog:zerolog-slf4j17:${zerologVersion}"
     testRuntime "org.slf4j:slf4j-api:${slf4jVersion}"
     testRuntime "org.slf4j:slf4j-log4j12:${slf4jVersion}"

@@ -7,9 +7,20 @@ import java.io.*;
 import org.junit.*;
 
 import com.obsidiandynamics.assertion.*;
+import com.obsidiandynamics.verifier.*;
 import com.obsidiandynamics.yconf.*;
 
 public final class ProducerPipeConfigTest {
+  @Test
+  public void testPojo() {
+    PojoVerifier.forClass(ProducerPipeConfig.class).verify();
+  }
+  
+  @Test
+  public void testFluent() {
+    FluentVerifier.forClass(ProducerPipeConfig.class).verify();
+  }
+  
   @Test
   public void testConfig() throws IOException {
     final ProducerPipeConfig config = new MappingContext()
