@@ -21,6 +21,19 @@ task bintrayCredentialsCheck {
   }
 }
 
+def baseJvmArgs = [
+  "--add-opens=java.base/java.io=ALL-UNNAMED",
+  "--add-opens=java.base/java.lang=ALL-UNNAMED",
+  "--add-opens=java.base/java.lang.invoke=ALL-UNNAMED",
+  "--add-opens=java.base/java.lang.reflect=ALL-UNNAMED",
+  "--add-opens=java.base/java.nio=ALL-UNNAMED",
+  "--add-opens=java.base/java.util=ALL-UNNAMED",
+  "--add-opens=java.base/java.util.concurrent.atomic=ALL-UNNAMED",
+  "--add-opens=java.base/sun.nio.ch=ALL-UNNAMED",
+  "-XX:-MaxFDLimit"
+]
+project.ext.set("baseJvmArgs", baseJvmArgs)
+
 allprojects {
   apply plugin: "java"
   apply plugin: "jacoco"
@@ -75,25 +88,36 @@ allprojects {
     // including commons-lang3:3.8.1 fixes this in the interim.
     testRuntime "org.apache.commons:commons-lang3:${commonsLangVersion}"
   }
+  
+  compileJava {
+    options.compilerArgs += "-proc:none"
+    options.compilerArgs += "-Xlint:unchecked"
+  }
 
+  compileTestJava {
+    options.compilerArgs += "-proc:none"
+    options.compilerArgs += "-Xlint:unchecked"
+  }
+  
+  tasks.withType(JavaCompile) {
+    options.fork = true
+    options.incremental = true
+  }
+  
   test {
     exclude "**/*IT.class"
+    jvmArgs += baseJvmArgs
   }
   
   task integrationTest(type: Test, description: "Runs integration tests", group: "Verification") {
     include "**/*IT.class"
+    jvmArgs += baseJvmArgs
   }
   
   jacoco {
-    toolVersion = "0.8.2"
+    toolVersion = "0.8.3"
   }
   
-  javadoc {
-    if (JavaVersion.current() != JavaVersion.VERSION_1_8) {
-      options.addStringOption("quiet", "-html5")
-    }
-  }
-
   task verify {
     dependsOn test
     dependsOn integrationTest
@@ -113,6 +137,10 @@ allprojects {
   // invoke this task when ready to publish to Bintray
   bintrayUpload {
     dependsOn ":bintrayCredentialsCheck"
+    dependsOn "jar"
+    dependsOn "sourcesJar"
+    dependsOn "javadocJar"
+    dependsOn "generatePomFileForMavenJavaPublication"
   }
 }
 
@@ -195,7 +223,7 @@ publishing {
   }
   repositories {
     maven {
-      url "${project(":").projectDir}/../repo"
+      url "${project(':').projectDir}/../repo"
     }
   }
 }
