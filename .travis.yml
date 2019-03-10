@@ -8,7 +8,7 @@ jdk:
   - openjdk10
   - openjdk11
 install:
-  - ./gradlew assemble --stacktrace --info
+  - travis_retry ./gradlew --info dependencies --refresh-dependencies
 script:
   - ./gradlew build verify javadocJar --stacktrace --info
 after_success:
