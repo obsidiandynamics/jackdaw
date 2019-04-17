@@ -1,0 +1,31 @@
+#!/bin/sh
+
+cp /etc/hosts ~/hosts.new && \
+sed -i "s|^127.0.0.1.*$|127.0.0.1 localhost $KAFKA_ADVERTISED_HOST_NAME|" ~/hosts.new && \
+cat ~/hosts.new > /etc/hosts && \
+sed -i "s|^broker.id=.*$|broker.id=$KAFKA_BROKER_ID|" /opt/kafka/config/server.properties && \
+sed -i "s|^zookeeper.connect=.*$|zookeeper.connect=$KAFKA_ZOOKEEPER_CONNECT|" /opt/kafka/config/server.properties && \
+sed -i "s|^zookeeper.connection.timeout.ms=.*$|zookeeper.connection.timeout.ms=$KAFKA_ZOOKEEPER_CONNECTION_TIMEOUT|" /opt/kafka/config/server.properties && \
+echo "" >> /opt/kafka/config/server.properties && \
+echo "advertised.host.name=$KAFKA_ADVERTISED_HOST_NAME" >> /opt/kafka/config/server.properties && \
+echo "advertised.port=$KAFKA_ADVERTISED_PORT" >> /opt/kafka/config/server.properties && \
+echo "zookeeper.session.timeout.ms=$KAFKA_ZOOKEEPER_SESSION_TIMEOUT" >> /opt/kafka/config/server.properties && \
+echo "" >> /opt/kafka/config/zookeeper.properties && \
+echo "autopurge.purgeInterval=$ZOOKEEPER_AUTOPURGE_PURGE_INTERVAL" >> /opt/kafka/config/zookeeper.properties && \
+/opt/kafka/bin/zookeeper-server-start.sh -daemon /opt/kafka/config/zookeeper.properties
+
+restarts_remaining=$KAFKA_RESTART_ATTEMPTS
+while [ true ]; do
+  /opt/kafka/bin/kafka-server-start.sh /opt/kafka/config/server.properties
+  exit_code=$?
+  if [ $exit_code -eq 0 ]; then
+    exit
+  elif [ $restarts_remaining -gt 0 ]; then
+    restarts_remaining=$((restarts_remaining-1))
+    echo "Kafka exited with code ${exit_code}; restarting in ${KAFKA_RESTART_DELAY} seconds... (attempts remaining: ${restarts_remaining})"
+    sleep $KAFKA_RESTART_DELAY
+  else
+    exit $exit_code
+  fi
+done
+

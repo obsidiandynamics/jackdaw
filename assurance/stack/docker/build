@@ -1,0 +1,7 @@
+#!/bin/sh
+
+version=$(cat version)
+
+docker build -t obsidiandynamics/kafka:${version} -t obsidiandynamics/kafka:latest .
+
+echo "Tagged ${version} and latest"
