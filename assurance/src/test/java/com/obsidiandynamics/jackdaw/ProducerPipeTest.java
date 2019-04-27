@@ -55,7 +55,7 @@ public final class ProducerPipeTest {
     consumer.subscribe(Arrays.asList("test"));
     final String msg = "B100";
     final ProducerRecord<String, String> rec = new ProducerRecord<>("test", msg);
-    Threads.sleep(10); // give the thread an opportunity to yield and sleep
+    Threads.sleep(50); // give the thread an opportunity to yield and sleep
     pipe.send(rec, null);
     
     wait.until(() -> {

@@ -2,6 +2,7 @@ package com.obsidiandynamics.jackdaw;
 
 import static com.obsidiandynamics.jackdaw.KafkaClusterConfig.*;
 
+import java.time.*;
 import java.util.*;
 import java.util.concurrent.*;
 import java.util.concurrent.TimeoutException;
@@ -310,11 +311,11 @@ public final class KafkaAdmin implements AutoCloseable {
 
   @Override
   public void close() {
-    close(0, TimeUnit.MILLISECONDS);
+    close(Duration.ofMillis(Long.MAX_VALUE));
   }
 
-  public void close(long duration, TimeUnit unit) {
-    admin.close(duration, unit);
+  public void close(Duration duration) {
+    admin.close(duration);
   }
 
   public static void awaitFutures(long timeout, KafkaFuture<?>... futures) throws TimeoutException, InterruptedException {

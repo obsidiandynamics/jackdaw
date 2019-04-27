@@ -5,6 +5,7 @@ import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
 import java.io.*;
+import java.time.*;
 import java.util.*;
 import java.util.concurrent.*;
 import java.util.concurrent.TimeoutException;
@@ -315,7 +316,7 @@ public final class KafkaAdminTest {
     final Function<Properties, AdminClient> factory = props -> client;
     final KafkaAdmin admin = KafkaAdmin.forConfig(new KafkaClusterConfig(), factory);
     admin.close();
-    verify(client).close(anyLong(), any());
+    verify(client).close(eq(Duration.ofMillis(Long.MAX_VALUE)));
   }
 
   @Test(expected=ExecutionException.class)

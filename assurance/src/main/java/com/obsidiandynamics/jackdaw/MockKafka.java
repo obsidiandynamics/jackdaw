@@ -108,8 +108,9 @@ public final class MockKafka<K, V> implements Kafka<K, V> {
           }
           
           final AtomicBoolean closed = new AtomicBoolean();
+          
           @Override 
-          public void close(long timeout, TimeUnit timeUnit) {
+          public void close(Duration duration) {
             if (closed.compareAndSet(false, true)) {
               super.close();
             }
