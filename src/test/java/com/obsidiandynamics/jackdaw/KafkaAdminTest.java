@@ -13,12 +13,14 @@ import java.util.concurrent.atomic.*;
 import java.util.function.*;
 
 import org.apache.kafka.clients.admin.*;
+import org.apache.kafka.clients.consumer.*;
 import org.apache.kafka.common.*;
 import org.apache.kafka.common.errors.*;
 import org.apache.kafka.common.internals.*;
 import org.apache.kafka.common.record.*;
 import org.junit.*;
 
+import com.obsidiandynamics.func.*;
 import com.obsidiandynamics.jackdaw.KafkaAdmin.*;
 import com.obsidiandynamics.verifier.*;
 import com.obsidiandynamics.zerolog.*;
@@ -239,6 +241,23 @@ public final class KafkaAdminTest {
     });
     final Set<String> topics = admin.listConsumerGroups(1_000);
     assertTrue(topics.contains("test"));
+  }
+
+  @Test
+  public void testListConsumerGroupOffsets() throws InterruptedException, ExecutionException, TimeoutException {
+    final AdminClient client = mock(AdminClient.class);
+    admin = KafkaAdmin.of(client);
+    when(client.listConsumerGroupOffsets(eq("testGroup"), any())).then(invocation -> {
+      final ListConsumerGroupOffsetsResult r = mock(ListConsumerGroupOffsetsResult.class);
+      final Map<TopicPartition, OffsetAndMetadata> offsets = MapBuilder
+          .init(new TopicPartition("testTopic", 0), new OffsetAndMetadata(100))
+          .build();
+      when(r.partitionsToOffsetAndMetadata()).thenReturn(KafkaFuture.completedFuture(offsets));
+      return r; 
+    });
+    final Map<TopicPartition, OffsetAndMetadata> offsets = admin.listConsumerGroupOffsets("testGroup", 1_000);
+    assertEquals(1, offsets.size());
+    assertEquals(new OffsetAndMetadata(100), offsets.get(new TopicPartition("testTopic", 0)));
   }
 
   @Test

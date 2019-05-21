@@ -1,5 +1,6 @@
 package com.obsidiandynamics.jackdaw;
 
+import static java.util.Arrays.*;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.Assert.*;
 
@@ -11,6 +12,7 @@ import java.util.stream.*;
 import org.apache.kafka.clients.admin.*;
 import org.apache.kafka.clients.consumer.*;
 import org.apache.kafka.clients.producer.*;
+import org.apache.kafka.common.*;
 import org.apache.kafka.common.serialization.*;
 import org.junit.*;
 import org.junit.runners.*;
@@ -22,26 +24,28 @@ import com.obsidiandynamics.yconf.util.*;
 public final class KafkaAdminDockerIT {
   private static final long TIMESTAMP = System.currentTimeMillis();
   private static final String TOPIC_A = getUniqueName("A");
+  private static final int TOPIC_A_PARTITIONS = 4;
   private static final String TOPIC_B = getUniqueName("B");
+  private static final int TOPIC_B_PARTITIONS = 1;
   private static final String GROUP = getUniqueName("G");
-  
+
   private static final int DEF_TIMEOUT = 10_000;
-  
+
   private static final KafkaClusterConfig CONFIG = new KafkaClusterConfig().withBootstrapServers("localhost:9092");
-  
+
   private static String getUniqueName(String suffix) {
     return getPrefix() + "-" + TIMESTAMP + "-" + suffix;
   }
-  
+
   private static String getPrefix() {
     return KafkaAdminDockerIT.class.getSimpleName();
   }
-  
+
   @BeforeClass
   public static void beforeClass() throws Exception {
     new KafkaDocker().start();
   }
-  
+
   @Test
   public void _00_testListAndDeleteTopics() throws ExecutionException, TimeoutException, InterruptedException {
     try (KafkaAdmin admin = KafkaAdmin.forConfig(CONFIG, AdminClient::create)) {
@@ -52,23 +56,25 @@ public final class KafkaAdminDockerIT {
       assertThat(deleted).containsExactlyInAnyOrderElementsOf(testTopics);
     }
   }
-  
+
   @Test
   public void _01_testCreateTopics() throws ExecutionException, TimeoutException, InterruptedException {
     try (KafkaAdmin admin = KafkaAdmin.forConfig(CONFIG, AdminClient::create)) {
-      final Set<String> created = admin.createTopics(Arrays.asList(TestTopic.newOf(TOPIC_A), TestTopic.newOf(TOPIC_B)), DEF_TIMEOUT);
+      final Set<String> created = admin.createTopics(asList(TestTopic.newOf(TOPIC_A, TOPIC_A_PARTITIONS), 
+                                                            TestTopic.newOf(TOPIC_B, TOPIC_B_PARTITIONS)), 
+                                                     DEF_TIMEOUT);
       assertThat(created).containsExactlyInAnyOrder(TOPIC_A, TOPIC_B);
     }
   }
-  
+
   @Test
   public void _02_testCreateDuplicateTopics() throws ExecutionException, TimeoutException, InterruptedException {
     try (KafkaAdmin admin = KafkaAdmin.forConfig(CONFIG, AdminClient::create)) {
-      final Set<String> created = admin.createTopics(Arrays.asList(TestTopic.newOf(TOPIC_A), TestTopic.newOf(TOPIC_B)), DEF_TIMEOUT);
+      final Set<String> created = admin.createTopics(asList(TestTopic.newOf(TOPIC_A), TestTopic.newOf(TOPIC_B)), DEF_TIMEOUT);
       assertThat(created).isEmpty();
     }
   }
-  
+
   @Test
   public void _03_testListAndDeleteConsumerGroups() throws ExecutionException, TimeoutException, InterruptedException {
     try (KafkaAdmin admin = KafkaAdmin.forConfig(CONFIG, AdminClient::create)) {
@@ -79,7 +85,7 @@ public final class KafkaAdminDockerIT {
       assertThat(deleted).containsExactlyInAnyOrderElementsOf(testConsumerGroups);
     }
   }
-  
+
   @Test
   public void _04_testPublishAndConsume() {
     final KafkaCluster<String, String> kafkaCluster = new KafkaCluster<>(CONFIG);
@@ -93,7 +99,7 @@ public final class KafkaAdminDockerIT {
     try (Producer<String, String> producer = kafkaCluster.getProducer(producerProps)) {
       producer.send(new ProducerRecord<String, String>(TOPIC_A, "someMessage"));
     }
-    
+
     final Properties consumerProps = new PropsBuilder()
         .with("group.id", GROUP)
         .with("auto.offset.reset", OffsetResetStrategy.EARLIEST.name().toLowerCase())
@@ -112,9 +118,18 @@ public final class KafkaAdminDockerIT {
       }
     }
   }
-  
+
   @Test
-  public void _05_testListAndDeleteConsumerGroups() throws ExecutionException, TimeoutException, InterruptedException {
+  public void _05_testListConsumerGroupOffsets() throws ExecutionException, TimeoutException, InterruptedException {
+    try (KafkaAdmin admin = KafkaAdmin.forConfig(CONFIG, AdminClient::create)) {
+      final Map<TopicPartition, OffsetAndMetadata> offsets = admin.listConsumerGroupOffsets(GROUP, DEF_TIMEOUT);
+      final TopicPartition[] expectedTopics = IntStream.range(0, 3).boxed().map(i -> new TopicPartition(TOPIC_A, i)).toArray(TopicPartition[]::new);
+      assertThat(offsets).containsKeys(expectedTopics);
+    }
+  }
+
+  @Test
+  public void _06_testListAndDeleteConsumerGroups() throws ExecutionException, TimeoutException, InterruptedException {
     try (KafkaAdmin admin = KafkaAdmin.forConfig(CONFIG, AdminClient::create)) {
       final Set<String> allConsumerGroups = admin.listConsumerGroups(DEF_TIMEOUT);
       final String testConsumerGroupPrefix = getPrefix();
@@ -123,17 +138,17 @@ public final class KafkaAdminDockerIT {
       assertThat(deleted).containsExactlyInAnyOrderElementsOf(testConsumerGroups);
     }
   }
-  
+
   @Test
-  public void _06_testDeleteTopics() throws ExecutionException, TimeoutException, InterruptedException {
+  public void _07_testDeleteTopics() throws ExecutionException, TimeoutException, InterruptedException {
     try (KafkaAdmin admin = KafkaAdmin.forConfig(CONFIG, AdminClient::create)) {
-      final Set<String> deleted = admin.deleteTopics(Arrays.asList(TOPIC_A, TOPIC_B), DEF_TIMEOUT);
+      final Set<String> deleted = admin.deleteTopics(asList(TOPIC_A, TOPIC_B), DEF_TIMEOUT);
       assertThat(deleted).containsExactlyInAnyOrder(TOPIC_A, TOPIC_B);
     }
   }
-  
+
   @Test
-  public void _07_describeCluster() throws ExecutionException, TimeoutException, InterruptedException {
+  public void _08_describeCluster() throws ExecutionException, TimeoutException, InterruptedException {
     try (KafkaAdmin admin = KafkaAdmin.forConfig(CONFIG, AdminClient::create)) {
       final DescribeClusterOutcome outcome = admin.describeCluster(DEF_TIMEOUT);
       assertNotNull(outcome);

@@ -10,6 +10,7 @@ import java.util.function.*;
 import java.util.stream.*;
 
 import org.apache.kafka.clients.admin.*;
+import org.apache.kafka.clients.consumer.*;
 import org.apache.kafka.common.*;
 import org.apache.kafka.common.Node;
 import org.apache.kafka.common.errors.*;
@@ -233,6 +234,25 @@ public final class KafkaAdmin implements AutoCloseable {
 
       final Collection<ConsumerGroupListing> listings = result.all().get();
       return listings.stream().map(ConsumerGroupListing::groupId).collect(Collectors.toSet());
+    });
+  }
+  
+  /**
+   *  Lists consumer group offsets.
+   *  
+   *  @param groupId The group ID.
+   *  @param timeoutMillis The timeout to wait for.
+   *  @return The offsets.
+   *  @throws ExecutionException If an unexpected error occurred.
+   *  @throws InterruptedException If the thread was interrupted.
+   *  @throws TimeoutException If a timeout occurred.
+   */
+  public Map<TopicPartition, OffsetAndMetadata> listConsumerGroupOffsets(String groupId, int timeoutMillis) throws ExecutionException, TimeoutException, InterruptedException {
+    return runWithRetry(() -> {
+      final ListConsumerGroupOffsetsResult result = admin.listConsumerGroupOffsets(groupId, new ListConsumerGroupOffsetsOptions().timeoutMs(timeoutMillis));
+      awaitFutures(timeoutMillis, result.partitionsToOffsetAndMetadata());
+
+      return result.partitionsToOffsetAndMetadata().get();
     });
   }
 

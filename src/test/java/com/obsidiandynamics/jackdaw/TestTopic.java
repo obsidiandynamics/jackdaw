@@ -6,6 +6,14 @@ final class TestTopic {
   private TestTopic() {}
   
   static NewTopic newOf(String topic) {
-    return new NewTopic(topic, 1, (short) 1);
+    return newOf(topic, 1);
+  }
+  
+  static NewTopic newOf(String topic, int numPartitions) {
+    return newOf(topic, numPartitions, (short) 1);
+  }
+  
+  static NewTopic newOf(String topic, int numPartitions, short replicationFactor) {
+    return new NewTopic(topic, numPartitions, replicationFactor);
   }
 }
