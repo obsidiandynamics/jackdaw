@@ -5,6 +5,7 @@ import java.util.*;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.*;
 
+import org.apache.kafka.clients.admin.*;
 import org.apache.kafka.clients.consumer.*;
 import org.apache.kafka.clients.consumer.internals.*;
 import org.apache.kafka.clients.producer.*;
@@ -314,6 +315,11 @@ public final class MockKafka<K, V> implements Kafka<K, V> {
       consumers.add(consumer);
     }
     return consumer;
+  }
+
+  @Override
+  public AdminClient getAdminClient() {
+    return NilAdminClient.getInstance();
   }
   
   private static <T> T instantiate(String className) {

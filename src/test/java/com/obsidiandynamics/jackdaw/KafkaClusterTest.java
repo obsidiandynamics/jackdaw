@@ -6,6 +6,7 @@ import static org.mockito.Mockito.*;
 
 import java.util.*;
 
+import org.apache.kafka.clients.admin.*;
 import org.apache.kafka.clients.consumer.*;
 import org.apache.kafka.clients.producer.*;
 import org.apache.kafka.common.serialization.*;
@@ -50,10 +51,11 @@ public class KafkaClusterTest {
   
   @Test
   public void testGetConsumer() {
-    try (Consumer<?, ?> producer = createCluster().getConsumer(new Properties())) {
-      assertNotNull(producer);
+    try (Consumer<?, ?> consumer = createCluster().getConsumer(new Properties())) {
+      assertNotNull(consumer);
     }
   }
+  
   @Test
   public void testDescribeConsumer() {
     final LogLine logLine = mock(LogLine.class, Answers.CALLS_REAL_METHODS);
@@ -61,5 +63,12 @@ public class KafkaClusterTest {
                                      new PropsBuilder().with("default", "1").build(),
                                      new PropsBuilder().with("overridden", "2").build());
     verify(logLine, atLeastOnce()).accept(any());
+  }
+  
+  @Test
+  public void testGetAdminClient() {
+    try (AdminClient adminClient = createCluster().getAdminClient()) {
+      assertNotNull(adminClient);
+    }
   }
 }

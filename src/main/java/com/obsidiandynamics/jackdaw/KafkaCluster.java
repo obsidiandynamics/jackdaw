@@ -1,14 +1,17 @@
 package com.obsidiandynamics.jackdaw;
 
+import static com.obsidiandynamics.jackdaw.KafkaClusterConfig.*;
 import static com.obsidiandynamics.props.PropsFormat.*;
 
 import java.util.*;
 
+import org.apache.kafka.clients.admin.*;
 import org.apache.kafka.clients.consumer.*;
 import org.apache.kafka.clients.producer.*;
 
 import com.obsidiandynamics.func.*;
 import com.obsidiandynamics.yconf.*;
+import com.obsidiandynamics.yconf.util.*;
 import com.obsidiandynamics.props.*;
 
 @Y
@@ -29,7 +32,7 @@ public final class KafkaCluster<K, V> implements Kafka<K, V> {
   }
 
   @Override
-  public Producer<K, V> getProducer(Properties defaults, Properties overrides) {
+  public KafkaProducer<K, V> getProducer(Properties defaults, Properties overrides) {
     return new KafkaProducer<>(mergeProducerProps(defaults, overrides));
   }
 
@@ -48,7 +51,7 @@ public final class KafkaCluster<K, V> implements Kafka<K, V> {
   }
 
   @Override
-  public Consumer<K, V> getConsumer(Properties defaults, Properties overrides) {
+  public KafkaConsumer<K, V> getConsumer(Properties defaults, Properties overrides) {
     return new KafkaConsumer<>(mergeConsumerProps(defaults, overrides));
   }
 
@@ -65,5 +68,14 @@ public final class KafkaCluster<K, V> implements Kafka<K, V> {
   @Override
   public String toString() {
     return KafkaCluster.class.getSimpleName() + " [config: " + config + "]";
+  }
+
+  @Override
+  public KafkaAdminClient getAdminClient() {
+    final String bootstrapServers = config.getCommonProps().getProperty(CONFIG_BOOTSTRAP_SERVERS);
+    final Properties props = new PropsBuilder()
+        .with(CONFIG_BOOTSTRAP_SERVERS, bootstrapServers)
+        .build();
+    return (KafkaAdminClient) AdminClient.create(props);
   }
 }

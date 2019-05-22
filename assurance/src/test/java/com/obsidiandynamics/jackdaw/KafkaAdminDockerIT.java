@@ -69,7 +69,7 @@ public final class KafkaAdminDockerIT {
 
   @Test
   public void _02_testCreateDuplicateTopics() throws ExecutionException, TimeoutException, InterruptedException {
-    try (KafkaAdmin admin = KafkaAdmin.forConfig(CONFIG, AdminClient::create)) {
+    try (KafkaAdmin admin = KafkaAdmin.of(new KafkaCluster<>(CONFIG).getAdminClient())) {
       final Set<String> created = admin.createTopics(asList(TestTopic.newOf(TOPIC_A), TestTopic.newOf(TOPIC_B)), DEF_TIMEOUT);
       assertThat(created).isEmpty();
     }

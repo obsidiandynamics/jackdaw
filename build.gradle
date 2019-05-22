@@ -59,7 +59,7 @@ allprojects {
     kafkaVersion = "2.2.0"
     log4jVersion = "1.2.17"
     mockitoVersion = "2.27.0"
-    pojotesterVersion = "0.7.6"
+    pojotesterVersion = "0.9.0"
     slf4jVersion = "1.7.25"
     yconfVersion = "0.16.0"
     zerologVersion = "0.27.0"
@@ -77,16 +77,12 @@ allprojects {
     testCompile "org.mockito:mockito-core:${mockitoVersion}"
     testCompile "org.apache.kafka:kafka-clients:${kafkaVersion}"
     testCompile "org.assertj:assertj-core:${assertjVersion}"
-    testCompile "pl.pojo:pojo-tester:${pojotesterVersion}"
+    testCompile "com.obsidiandynamics.pojotester:pojotester:${pojotesterVersion}"
     testCompile "nl.jqno.equalsverifier:equalsverifier:${equalsverifierVersion}"
     testRuntime "com.obsidiandynamics.zerolog:zerolog-slf4j17:${zerologVersion}"
     testRuntime "org.slf4j:slf4j-api:${slf4jVersion}"
     testRuntime "org.slf4j:slf4j-log4j12:${slf4jVersion}"
     testRuntime "log4j:log4j:${log4jVersion}"
-    
-    // Dependency fix: pojo-tester:0.7.6 depends on commons-lang3:3.7.0, which doesn't support Java 11;
-    // including commons-lang3:3.8.1 fixes this in the interim.
-    testRuntime "org.apache.commons:commons-lang3:${commonsLangVersion}"
   }
   
   compileJava {

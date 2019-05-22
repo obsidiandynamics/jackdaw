@@ -9,6 +9,7 @@ import java.util.*;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.*;
 
+import org.apache.kafka.clients.admin.*;
 import org.apache.kafka.clients.consumer.*;
 import org.apache.kafka.clients.consumer.internals.*;
 import org.apache.kafka.clients.producer.*;
@@ -398,5 +399,11 @@ public final class MockKafkaTest {
   @Test
   public void testToString() {
     Assertions.assertToStringOverride(new MockKafka<>(1, 1));
+  }
+  
+  @Test
+  public void testGetAdminClient() throws InterruptedException, ExecutionException {
+    final AdminClient adminClient = new MockKafka<>().getAdminClient();
+    assertEquals(Collections.emptyMap(), adminClient.listConsumerGroupOffsets("testGroup").partitionsToOffsetAndMetadata().get());
   }
 }
