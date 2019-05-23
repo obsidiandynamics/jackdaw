@@ -319,7 +319,7 @@ public final class MockKafka<K, V> implements Kafka<K, V> {
 
   @Override
   public AdminClient getAdminClient() {
-    return NilAdminClient.getInstance();
+    return PassiveAdminClient.getInstance();
   }
   
   private static <T> T instantiate(String className) {

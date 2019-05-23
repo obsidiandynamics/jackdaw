@@ -1,23 +1,28 @@
 package com.obsidiandynamics.jackdaw;
 
+import static java.util.Arrays.*;
 import static java.util.Collections.*;
 import static org.junit.Assert.*;
 
+import java.util.*;
 import java.util.concurrent.*;
 
+import org.apache.kafka.common.acl.*;
+import org.apache.kafka.common.resource.*;
+import org.assertj.core.api.*;
 import org.junit.*;
 
-public final class NilAdminClientTest {
-  private NilAdminClient adminClient;
+public final class PassiveAdminClientTest {
+  private PassiveAdminClient adminClient;
   
   @Before
   public void before() {
-    adminClient = NilAdminClient.getInstance();
+    adminClient = PassiveAdminClient.getInstance();
   }
   
   @Test
   public void testSingletion() {
-    assertSame(adminClient, NilAdminClient.getInstance());
+    assertSame(adminClient, PassiveAdminClient.getInstance());
   }
   
   @Test
@@ -47,7 +52,8 @@ public final class NilAdminClientTest {
 
   @Test
   public void testDescribeTopics() throws Exception {
-    assertEquals(emptyMap(), adminClient.describeTopics(emptySet()).values());
+    final List<String> topicNames = asList("topic");
+    Assertions.assertThat(adminClient.describeTopics(topicNames).values().keySet()).containsAll(topicNames);
   }
 
   @Test
@@ -62,7 +68,9 @@ public final class NilAdminClientTest {
 
   @Test
   public void testCreateAcls() throws Exception {
-    assertEquals(emptyMap(), adminClient.createAcls(emptySet()).values());
+    final List<AclBinding> bindings = asList(new AclBinding(new ResourcePattern(ResourceType.CLUSTER, "name", PatternType.LITERAL), 
+                                                            new AccessControlEntry("principal", "host", AclOperation.ALL, AclPermissionType.ALLOW)));
+    Assertions.assertThat(adminClient.createAcls(bindings).values().keySet()).containsAll(bindings);
   }
 
   @Test
@@ -127,7 +135,8 @@ public final class NilAdminClientTest {
 
   @Test
   public void testDescribeConsumerGroups() throws Exception {
-    assertEquals(emptyMap(), adminClient.describeConsumerGroups(emptySet()).describedGroups());
+    final List<String> groupIds = asList("group");
+    Assertions.assertThat(adminClient.describeConsumerGroups(groupIds).describedGroups().keySet()).containsAll(groupIds);
   }
 
   @Test

@@ -19,19 +19,23 @@ import org.apache.kafka.common.config.*;
 import org.apache.kafka.common.internals.*;
 import org.apache.kafka.common.requests.*;
 
-public final class NilAdminClient extends AdminClient {
-  private static final NilAdminClient INSTANCE = new NilAdminClient();
+/**
+ *  A submissive {@link AdminClient} implementation that accepts all requests and returns a
+ *  positive result.
+ */
+public final class PassiveAdminClient extends AdminClient {
+  private static final PassiveAdminClient INSTANCE = new PassiveAdminClient();
   
-  public static NilAdminClient getInstance() { return INSTANCE; }
+  public static PassiveAdminClient getInstance() { return INSTANCE; }
   
-  private NilAdminClient() {}
+  private PassiveAdminClient() {}
   
   @Override
   public void close(Duration timeout) {}
   
   private static <T, K> Map<K, KafkaFuture<Void>> complete(Collection<T> inputs, 
                                                            Function<? super T, ? extends K> keyExtractor) {
-    return complete(inputs, keyExtractor, __ -> null);
+    return complete(inputs, keyExtractor, provideNull());
   }
   
   private static <T, K, V> Map<K, KafkaFuture<V>> complete(Collection<T> inputs, 
@@ -51,6 +55,14 @@ public final class NilAdminClient extends AdminClient {
   private static <T> KafkaFuture<T> complete(T value) {
     return KafkaFuture.completedFuture(value);
   }
+  
+  private static <R> Function<?, R> provideNull() {
+    return provide(null);
+  }
+  
+  private static <R> Function<?, R> provide(R ret) {
+    return __ -> ret;
+  }
 
   @Override
   public CreateTopicsResult createTopics(Collection<NewTopic> newTopics, CreateTopicsOptions options) {
@@ -64,7 +76,7 @@ public final class NilAdminClient extends AdminClient {
 
   @Override
   public ListTopicsResult listTopics(ListTopicsOptions options) {
-    return new XListTopicsResult(KafkaFuture.completedFuture(emptyMap()));
+    return new XListTopicsResult(complete(emptyMap()));
   }
 
   @Override
@@ -84,39 +96,39 @@ public final class NilAdminClient extends AdminClient {
 
   @Override
   public CreateAclsResult createAcls(Collection<AclBinding> acls, CreateAclsOptions options) {
-    return new XCreateAclsResult(complete(acls, identity(), __ -> null));
+    return new XCreateAclsResult(complete(acls, identity(), provideNull()));
   }
 
   @Override
   public DeleteAclsResult deleteAcls(Collection<AclBindingFilter> filters, DeleteAclsOptions options) {
-    return new XDeleteAclsResult(complete(filters, identity(), __ -> new XFilterResults(emptyList())));
+    return new XDeleteAclsResult(complete(filters, identity(), provide(new XFilterResults(emptyList()))));
   }
 
   @Override
   public DescribeConfigsResult describeConfigs(Collection<ConfigResource> resources, DescribeConfigsOptions options) {
-    return new XDescribeConfigsResult(complete(resources, identity(), __ -> new Config(emptySet())));
+    return new XDescribeConfigsResult(complete(resources, identity(), provide(new Config(emptySet()))));
   }
 
   @Override
   public AlterConfigsResult alterConfigs(Map<ConfigResource, Config> configs, AlterConfigsOptions options) {
-    return new XAlterConfigsResult(complete(configs.keySet(), identity(), __ -> null));
+    return new XAlterConfigsResult(complete(configs.keySet(), identity(), provideNull()));
   }
 
   @Override
   public AlterReplicaLogDirsResult alterReplicaLogDirs(Map<TopicPartitionReplica, String> replicaAssignment,
                                                        AlterReplicaLogDirsOptions options) {
-    return new XAlterReplicaLogDirsResult(complete(replicaAssignment.keySet(), identity(), __ -> null));
+    return new XAlterReplicaLogDirsResult(complete(replicaAssignment.keySet(), identity(), provideNull()));
   }
 
   @Override
   public DescribeLogDirsResult describeLogDirs(Collection<Integer> brokers, DescribeLogDirsOptions options) {
-    return new XDescribeLogDirsResult(complete(brokers, identity(), __ -> emptyMap()));
+    return new XDescribeLogDirsResult(complete(brokers, identity(), provide(emptyMap())));
   }
 
   @Override
   public DescribeReplicaLogDirsResult describeReplicaLogDirs(Collection<TopicPartitionReplica> replicas,
                                                              DescribeReplicaLogDirsOptions options) {
-    return new XDescribeReplicaLogDirsResult(complete(replicas, identity(), __ -> new XReplicaLogDirInfo("", 0, "", 0)));
+    return new XDescribeReplicaLogDirsResult(complete(replicas, identity(), provide(new XReplicaLogDirInfo("", 0, "", 0))));
   }
 
   @Override
@@ -128,7 +140,7 @@ public final class NilAdminClient extends AdminClient {
   @Override
   public DeleteRecordsResult deleteRecords(Map<TopicPartition, RecordsToDelete> recordsToDelete,
                                            DeleteRecordsOptions options) {
-    return new XDeleteRecordsResult(complete(recordsToDelete.keySet(), identity(), __ -> new DeletedRecords(0)));
+    return new XDeleteRecordsResult(complete(recordsToDelete.keySet(), identity(), provide(new DeletedRecords(0))));
   }
 
   @Override
@@ -156,7 +168,7 @@ public final class NilAdminClient extends AdminClient {
                                                              DescribeConsumerGroupsOptions options) {
     return new XDescribeConsumerGroupsResult(complete(groupIds, 
                                                       identity(), 
-                                                      groupId -> new ConsumerGroupDescription(groupId, true, emptySet(), "", ConsumerGroupState.UNKNOWN, null)));
+                                                      groupId -> new ConsumerGroupDescription(groupId, true, emptySet(), "", ConsumerGroupState.STABLE, null)));
   }
 
   @Override
@@ -180,7 +192,7 @@ public final class NilAdminClient extends AdminClient {
   public ElectPreferredLeadersResult electPreferredLeaders(Collection<TopicPartition> partitions,
                                                            ElectPreferredLeadersOptions options) {
     final Map<TopicPartition, ApiError> map = partitions.stream()
-        .collect(Collectors.toMap(identity(), __ -> ApiError.NONE));
+        .collect(Collectors.toMap(identity(), provide(ApiError.NONE)));
     final KafkaFutureImpl<Map<TopicPartition, ApiError>> electionFuture = cast(complete(map));
     return new XElectPreferredLeadersResult(electionFuture, new HashSet<>(partitions));
   }
