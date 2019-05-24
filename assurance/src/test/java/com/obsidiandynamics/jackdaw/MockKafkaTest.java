@@ -217,7 +217,7 @@ public final class MockKafkaTest {
   }
   
   @Test(expected=IllegalStateException.class)
-  public void testSendClosedProducer() {
+  public void testSend_closedProducer() {
     final TestRuntimeException cause = new TestRuntimeException();
     final MockKafka<String, String> kafka = new MockKafka<String, String>(1, 1)
         .withSendRuntimeExceptionGenerator(__ -> cause);
@@ -228,7 +228,7 @@ public final class MockKafkaTest {
   }
   
   @Test(expected=InvalidPartitionException.class)
-  public void testSendInvalidPartition() {
+  public void testSend_invalidPartition() {
     final MockKafka<String, String> kafka = new MockKafka<>(1, 1);
     final SerdeProps props = new SerdeProps(SerdePair.STRING);
     final Producer<String, String> producer = kafka.getProducer(props.producer());
@@ -236,7 +236,7 @@ public final class MockKafkaTest {
   }
   
   @Test
-  public void testSendClearBacklog() {
+  public void testSend_clearBacklog() {
     final int maxHistory = 1;
     final MockKafka<String, String> kafka = new MockKafka<>(1, maxHistory);
     final SerdeProps props = new SerdeProps(SerdePair.STRING);
@@ -329,7 +329,7 @@ public final class MockKafkaTest {
   }
 
   @Test
-  public void testPartitionsForExistingTopic() {
+  public void testPartitionsFor_existingTopic() {
     final MockKafka<String, String> kafka = new MockKafka<>(1, 1);
     final SerdeProps props = new SerdeProps(SerdePair.STRING);
     
@@ -342,7 +342,7 @@ public final class MockKafkaTest {
   }
 
   @Test
-  public void testPartitionsForNonExistentTopic() {
+  public void testPartitionsFor_nonExistentTopic() {
     final MockKafka<String, String> kafka = new MockKafka<>(1, 1);
     final SerdeProps props = new SerdeProps(SerdePair.STRING);
     
@@ -364,7 +364,7 @@ public final class MockKafkaTest {
   }
   
   @Test
-  public void testCommitAsyncWithError() {
+  public void testCommitAsync_withError() {
     final Exception cause = new Exception("simulated");
     final MockKafka<String, String> kafka = new MockKafka<String, String>(1, 1)
         .withCommitExceptionGenerator(__ -> cause);
@@ -378,7 +378,7 @@ public final class MockKafkaTest {
   }
   
   @Test
-  public void testCommitAsyncWithErrorNoCallback() {
+  public void testCommitAsync_withErrorNoCallback() {
     final Exception cause = new Exception("simulated");
     final MockKafka<String, String> kafka = new MockKafka<String, String>(1, 1)
         .withCommitExceptionGenerator(__ -> cause);
@@ -397,13 +397,20 @@ public final class MockKafkaTest {
   }
   
   @Test
-  public void testToString() {
-    Assertions.assertToStringOverride(new MockKafka<>(1, 1));
+  public void testGetAdminClient_defaultFactory() throws InterruptedException, ExecutionException {
+    final AdminClient adminClient = new MockKafka<>().getAdminClient();
+    assertSame(adminClient, PassiveAdminClient.getInstance());
   }
   
   @Test
-  public void testGetAdminClient() throws InterruptedException, ExecutionException {
-    final AdminClient adminClient = new MockKafka<>().getAdminClient();
-    assertEquals(Collections.emptyMap(), adminClient.listConsumerGroupOffsets("testGroup").partitionsToOffsetAndMetadata().get());
+  public void testGetAdminClient_customFactory() {
+    final AdminClient adminClient = mock(AdminClient.class);
+    final MockKafka<?, ?> kafka = new MockKafka<>().withAdminClientFactory(() -> adminClient);
+    assertSame(adminClient, kafka.getAdminClient());
+  }
+  
+  @Test
+  public void testToString() {
+    Assertions.assertToStringOverride(new MockKafka<>(1, 1));
   }
 }

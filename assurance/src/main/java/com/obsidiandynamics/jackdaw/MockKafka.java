@@ -4,6 +4,7 @@ import java.time.*;
 import java.util.*;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.*;
+import java.util.function.*;
 
 import org.apache.kafka.clients.admin.*;
 import org.apache.kafka.clients.consumer.*;
@@ -39,6 +40,8 @@ public final class MockKafka<K, V> implements Kafka<K, V> {
   private ExceptionGenerator<ProducerRecord<K, V>, RuntimeException> sendRuntimeExceptionGenerator = ExceptionGenerator.never();
   private ExceptionGenerator<Map<TopicPartition, OffsetAndMetadata>, Exception> commitExceptionGenerator = ExceptionGenerator.never();
   
+  private Supplier<AdminClient> adminClientFactory = PassiveAdminClient::getInstance;
+  
   public MockKafka() {
     this(10, 100_000);
   }
@@ -60,6 +63,11 @@ public final class MockKafka<K, V> implements Kafka<K, V> {
 
   public MockKafka<K, V> withCommitExceptionGenerator(ExceptionGenerator<Map<TopicPartition, OffsetAndMetadata>, Exception> commitExceptionGenerator) {
     this.commitExceptionGenerator = commitExceptionGenerator;
+    return this;
+  }
+  
+  public MockKafka<K, V> withAdminClientFactory(Supplier<AdminClient> adminClientFactory) {
+    this.adminClientFactory = adminClientFactory;
     return this;
   }
 
@@ -319,7 +327,7 @@ public final class MockKafka<K, V> implements Kafka<K, V> {
 
   @Override
   public AdminClient getAdminClient() {
-    return PassiveAdminClient.getInstance();
+    return adminClientFactory.get();
   }
   
   private static <T> T instantiate(String className) {
