@@ -37,7 +37,7 @@ public final class ThreadedConsumerSample {
     final int processingTimeMillis = 100;
     
     final Map<TopicPartition, OffsetAndMetadata> readOffsets = new HashMap<>();
-    final Map<TopicPartition, OffsetAndMetadata> offsetsToCommit = new HashMap<>();
+    final Map<TopicPartition, OffsetAndMetadata> confirmedOffsets = new HashMap<>();
     
     final ExecutorService executor = Executors.newWorkStealingPool(parallelism);
     final Object offsetsLock = new Object();
@@ -49,24 +49,27 @@ public final class ThreadedConsumerSample {
           if (! partitions.isEmpty()) {
             zlg.i("waiting for offsets to be committed...");
             for (;;) {
-              final Map<TopicPartition, OffsetAndMetadata> lastCommittedOffsets = new HashMap<>();
+              final Map<TopicPartition, OffsetAndMetadata> lastConfirmedOffsets;
               synchronized (offsetsLock) {
-                if (! offsetsToCommit.isEmpty()) {
+                if (! confirmedOffsets.isEmpty()) {
+                  final Map<TopicPartition, OffsetAndMetadata> offsetsToCommit = offsetsToCommit(confirmedOffsets);
                   zlg.i("committing %s", z -> z.arg(offsetsToCommit));
                   if (commitAsync) {
                     consumer.commitAsync(offsetsToCommit, null);
                   } else {
                     consumer.commitSync(offsetsToCommit, Duration.ofMillis(1_000));
                   }
-                  lastCommittedOffsets.putAll(offsetsToCommit);
-                  offsetsToCommit.clear();
-                }
-                
-                if (lastCommittedOffsets.equals(readOffsets)) {
-                  break;
+                  lastConfirmedOffsets = new HashMap<>(confirmedOffsets);
+                  confirmedOffsets.clear();
                 } else {
-                  zlg.i("expected: %s, got: %s", z -> z.arg(readOffsets).arg(lastCommittedOffsets));
+                  lastConfirmedOffsets = Collections.emptyMap();
                 }
+              }
+              
+              if (lastConfirmedOffsets.equals(readOffsets)) {
+                break;
+              } else {
+                zlg.i("expected: %s, got: %s", z -> z.arg(readOffsets).arg(lastConfirmedOffsets));
               }
               Threads.sleep(10);
             }
@@ -104,9 +107,9 @@ public final class ThreadedConsumerSample {
               // unsafe: we commit the highest offset, which also ends up committing all prior records, which
               // might still be backlogged
               synchronized (offsetsLock) {
-                final OffsetAndMetadata latestQueued = offsetsToCommit.get(topicPartition);
+                final OffsetAndMetadata latestQueued = confirmedOffsets.get(topicPartition);
                 if (latestQueued == null || latestQueued.offset() < record.offset()) {
-                  offsetsToCommit.put(topicPartition, new OffsetAndMetadata(record.offset()));
+                  confirmedOffsets.put(topicPartition, new OffsetAndMetadata(record.offset()));
                 }
               }
             });
@@ -116,6 +119,14 @@ public final class ThreadedConsumerSample {
         Threads.sleep(pollIntervalMillis);
       }
     }
+  }
+  
+  private static Map<TopicPartition, OffsetAndMetadata> offsetsToCommit(Map<TopicPartition, OffsetAndMetadata> confirmedOffsets) {
+    final Map<TopicPartition, OffsetAndMetadata> commitOffsets = new HashMap<>();
+    for (Map.Entry<TopicPartition, OffsetAndMetadata> confirmedEntry : confirmedOffsets.entrySet()) {
+      commitOffsets.put(confirmedEntry.getKey(), new OffsetAndMetadata(confirmedEntry.getValue().offset() + 1));
+    }
+    return commitOffsets;
   }
   
   private static List<ConsumerRecord<String, String>> list(ConsumerRecords<String, String> records) {

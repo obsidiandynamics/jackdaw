@@ -1,6 +1,6 @@
 package com.obsidiandynamics.jackdaw;
 
-import static com.obsidiandynamics.jackdaw.KafkaClusterConfig.*;
+import static org.apache.kafka.clients.CommonClientConfigs.*;
 
 import java.time.*;
 import java.util.*;
@@ -66,9 +66,9 @@ public final class KafkaAdmin implements AutoCloseable {
    *  @return The {@link KafkaAdmin} wrapper.
    */
   public static KafkaAdmin forConfig(KafkaClusterConfig config, Function<Properties, AdminClient> adminClientFactory) {
-    final String bootstrapServers = config.getCommonProps().getProperty(CONFIG_BOOTSTRAP_SERVERS);
+    final String bootstrapServers = config.getCommonProps().getProperty(BOOTSTRAP_SERVERS_CONFIG);
     final Properties props = new PropsBuilder()
-        .with(CONFIG_BOOTSTRAP_SERVERS, bootstrapServers)
+        .with(BOOTSTRAP_SERVERS_CONFIG, bootstrapServers)
         .build();
     final AdminClient admin = adminClientFactory.apply(props);
     return new KafkaAdmin(admin);

@@ -1,7 +1,7 @@
 package com.obsidiandynamics.jackdaw;
 
-import static com.obsidiandynamics.jackdaw.KafkaClusterConfig.*;
 import static com.obsidiandynamics.props.PropsFormat.*;
+import static org.apache.kafka.clients.CommonClientConfigs.*;
 
 import java.util.*;
 
@@ -10,9 +10,9 @@ import org.apache.kafka.clients.consumer.*;
 import org.apache.kafka.clients.producer.*;
 
 import com.obsidiandynamics.func.*;
+import com.obsidiandynamics.props.*;
 import com.obsidiandynamics.yconf.*;
 import com.obsidiandynamics.yconf.util.*;
-import com.obsidiandynamics.props.*;
 
 @Y
 public final class KafkaCluster<K, V> implements Kafka<K, V> {
@@ -72,9 +72,9 @@ public final class KafkaCluster<K, V> implements Kafka<K, V> {
 
   @Override
   public KafkaAdminClient getAdminClient() {
-    final String bootstrapServers = config.getCommonProps().getProperty(CONFIG_BOOTSTRAP_SERVERS);
+    final String bootstrapServers = config.getCommonProps().getProperty(BOOTSTRAP_SERVERS_CONFIG);
     final Properties props = new PropsBuilder()
-        .with(CONFIG_BOOTSTRAP_SERVERS, bootstrapServers)
+        .with(BOOTSTRAP_SERVERS_CONFIG, bootstrapServers)
         .build();
     return (KafkaAdminClient) AdminClient.create(props);
   }

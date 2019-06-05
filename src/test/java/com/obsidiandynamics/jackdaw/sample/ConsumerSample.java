@@ -83,7 +83,7 @@ public final class ConsumerSample {
           final List<ConsumerRecord<String, String>> recordsList = list(records);
           final ConsumerRecord<String, String> lastRecord = recordsList.get(recordsList.size() - 1);
           offsetsToCommit.put(new TopicPartition(lastRecord.topic(), lastRecord.partition()), 
-                              new OffsetAndMetadata(lastRecord.offset()));
+                              new OffsetAndMetadata(lastRecord.offset() + 1));
         }
         
         Threads.sleep(pollIntervalMillis);

@@ -1,5 +1,6 @@
 package com.obsidiandynamics.jackdaw;
 
+import static org.apache.kafka.clients.CommonClientConfigs.*;
 import static org.junit.Assert.*;
 
 import java.io.*;
@@ -24,7 +25,7 @@ public final class KafkaConfigTest {
     
     final KafkaClusterConfig config = ((KafkaCluster<?, ?>) kafka).getConfig();
     assertNotNull(config);
-    assertEquals(new PropsBuilder().with(KafkaClusterConfig.CONFIG_BOOTSTRAP_SERVERS, "localhost:9092").build(),
+    assertEquals(new PropsBuilder().with(BOOTSTRAP_SERVERS_CONFIG, "localhost:9092").build(),
                  config.getCommonProps());
     Assertions.assertToStringOverride(config);
   }
@@ -54,7 +55,7 @@ public final class KafkaConfigTest {
     final KafkaClusterConfig config = new KafkaClusterConfig()
         .withBootstrapServers("localhost:9092");
     
-    assertEquals("localhost:9092", config.getCommonProps().getProperty(KafkaClusterConfig.CONFIG_BOOTSTRAP_SERVERS));
+    assertEquals("localhost:9092", config.getCommonProps().getProperty(BOOTSTRAP_SERVERS_CONFIG));
   }
   
   @Test(expected=IllegalArgumentException.class)

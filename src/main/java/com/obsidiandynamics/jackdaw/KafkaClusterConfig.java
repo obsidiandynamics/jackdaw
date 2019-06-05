@@ -1,5 +1,7 @@
 package com.obsidiandynamics.jackdaw;
 
+import static org.apache.kafka.clients.CommonClientConfigs.*;
+
 import java.util.*;
 
 import com.obsidiandynamics.yconf.*;
@@ -16,10 +18,8 @@ public final class KafkaClusterConfig {
     }
   }
   
-  public static final String CONFIG_BOOTSTRAP_SERVERS = "bootstrap.servers";
-  
   private Properties common = new PropsBuilder()
-      .withSystemDefault(CONFIG_BOOTSTRAP_SERVERS, null)
+      .withSystemDefault(BOOTSTRAP_SERVERS_CONFIG, null)
       .build();
 
   private Properties producer = new Properties();
@@ -27,13 +27,13 @@ public final class KafkaClusterConfig {
   private Properties consumer = new Properties();
   
   public void validate() {
-    if (common.getProperty(CONFIG_BOOTSTRAP_SERVERS) == null) {
-      throw new IllegalArgumentException("Must specify a value for '" + CONFIG_BOOTSTRAP_SERVERS + "'");
+    if (common.getProperty(BOOTSTRAP_SERVERS_CONFIG) == null) {
+      throw new IllegalArgumentException("Must specify a value for '" + BOOTSTRAP_SERVERS_CONFIG + "'");
     }
   }
   
   public KafkaClusterConfig withBootstrapServers(String bootstrapServers) {
-    return withCommonProps(Collections.singletonMap(CONFIG_BOOTSTRAP_SERVERS, bootstrapServers));
+    return withCommonProps(Collections.singletonMap(BOOTSTRAP_SERVERS_CONFIG, bootstrapServers));
   }
   
   public Properties getCommonProps() {
