@@ -7,6 +7,5 @@ services:
       - "2181:2181"
       - "9092:9092"
     environment:
-      KAFKA_ADVERTISED_HOST_NAME: "localhost"
-      KAFKA_ADVERTISED_PORT: "9092"
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092
       ZOOKEEPER_AUTOPURGE_PURGE_INTERVAL: "0"

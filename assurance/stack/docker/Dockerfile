@@ -1,22 +1,47 @@
 FROM openjdk:8-jre-alpine
 
-ARG KAFKA_VERSION=2.1.0
+ARG KAFKA_VERSION=2.2.1
 ARG SCALA_VERSION=2.12
 
 VOLUME ["/var/lib/kafka"]
 
-# generate unique ID by default
+# The broker ID (set to -1 to generate a unique ID)
 ENV KAFKA_BROKER_ID=-1
+
+# Address(es) the socket server listens on (comma-separated)
+ENV KAFKA_LISTENERS="PLAINTEXT://:9092"
+
+# Hostname/port combination(s) the broker will advertise to clients (comma-separated)
+ENV KAFKA_ADVERTISED_LISTENERS="PLAINTEXT://:9092"
+
+# Maps listener names to security protocols
+ENV KAFKA_LISTENER_SECURITY_PROTOCOL_MAP="PLAINTEXT:PLAINTEXT,SSL:SSL,SASL_PLAINTEXT:SASL_PLAINTEXT,SASL_SSL:SASL_SSL"
+
+# The listener to use for inter-broker communications
+ENV KAFKA_INTER_BROKER_LISTENER_NAME=PLAINTEXT
+
+# The advertised hostname (legacy approach, prefer KAFKA_ADVERTISED_LISTENERS instead)
 ENV KAFKA_ADVERTISED_HOST_NAME=localhost
+
+# The advertised port (legacy approach, prefer KAFKA_ADVERTISED_LISTENERS instead)
 ENV KAFKA_ADVERTISED_PORT=9092
+
+# ZooKeeper connect address
 ENV KAFKA_ZOOKEEPER_CONNECT=127.0.0.1:2181
+
+# ZooKeeper connect timeout
 ENV KAFKA_ZOOKEEPER_CONNECTION_TIMEOUT=10000
+
+# ZooKeeper session timeout
 ENV KAFKA_ZOOKEEPER_SESSION_TIMEOUT=6000
-# number of times to restart the broker if it terminates with a non-zero exit code
+
+# Number of times to restart the broker if it terminates with a non-zero exit code
 ENV KAFKA_RESTART_ATTEMPTS=3
-# number of seconds between restart attempts
+
+# Number of seconds between restart attempts
 ENV KAFKA_RESTART_DELAY=5
 
+# ZooKeeper auto-purge interval (in hours, set to 0 to disable)
 ENV ZOOKEEPER_AUTOPURGE_PURGE_INTERVAL=0
 
 EXPOSE 2181/tcp 9092/tcp
