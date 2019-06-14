@@ -6,43 +6,56 @@ ARG SCALA_VERSION=2.12
 VOLUME ["/var/lib/kafka"]
 
 # The broker ID (set to -1 to generate a unique ID)
-ENV KAFKA_BROKER_ID=-1
+# Default: -1
+ENV KAFKA_BROKER_ID=""
 
 # Address(es) the socket server listens on (comma-separated)
-ENV KAFKA_LISTENERS="PLAINTEXT://:9092"
+# Default: PLAINTEXT://:9092
+ENV KAFKA_LISTENERS=""
 
 # Hostname/port combination(s) the broker will advertise to clients (comma-separated)
-ENV KAFKA_ADVERTISED_LISTENERS="PLAINTEXT://:9092"
+# Default: The value of `KAFKA_LISTENERS`
+ENV KAFKA_ADVERTISED_LISTENERS=""
 
 # Maps listener names to security protocols
-ENV KAFKA_LISTENER_SECURITY_PROTOCOL_MAP="PLAINTEXT:PLAINTEXT,SSL:SSL,SASL_PLAINTEXT:SASL_PLAINTEXT,SASL_SSL:SASL_SSL"
+# Default: PLAINTEXT:PLAINTEXT,SSL:SSL,SASL_PLAINTEXT:SASL_PLAINTEXT,SASL_SSL:SASL_SSL
+ENV KAFKA_LISTENER_SECURITY_PROTOCOL_MAP=""
 
 # The listener to use for inter-broker communications
-ENV KAFKA_INTER_BROKER_LISTENER_NAME=PLAINTEXT
+# Default: PLAINTEXT
+ENV KAFKA_INTER_BROKER_LISTENER_NAME=""
 
-# The advertised hostname (legacy approach, prefer KAFKA_ADVERTISED_LISTENERS instead)
-ENV KAFKA_ADVERTISED_HOST_NAME=localhost
+# The advertised hostname (deprecated, prefer KAFKA_ADVERTISED_LISTENERS instead)
+# Default: The canonical hostname of the machine
+ENV KAFKA_ADVERTISED_HOST_NAME=""
 
-# The advertised port (legacy approach, prefer KAFKA_ADVERTISED_LISTENERS instead)
-ENV KAFKA_ADVERTISED_PORT=9092
+# The advertised port (deprecated, prefer KAFKA_ADVERTISED_LISTENERS instead)
+# Default: The value of the bound port
+ENV KAFKA_ADVERTISED_PORT=""
 
 # ZooKeeper connect address
-ENV KAFKA_ZOOKEEPER_CONNECT=127.0.0.1:2181
+# Default: 127.0.0.1:2181
+ENV KAFKA_ZOOKEEPER_CONNECT=""
 
 # ZooKeeper connect timeout
-ENV KAFKA_ZOOKEEPER_CONNECTION_TIMEOUT=10000
+# Default: 10000
+ENV KAFKA_ZOOKEEPER_CONNECTION_TIMEOUT=""
 
 # ZooKeeper session timeout
-ENV KAFKA_ZOOKEEPER_SESSION_TIMEOUT=6000
+# Default: 6000
+ENV KAFKA_ZOOKEEPER_SESSION_TIMEOUT=""
 
 # Number of times to restart the broker if it terminates with a non-zero exit code
-ENV KAFKA_RESTART_ATTEMPTS=3
+# Default: 3
+ENV KAFKA_RESTART_ATTEMPTS=""
 
 # Number of seconds between restart attempts
-ENV KAFKA_RESTART_DELAY=5
+# Default: 5
+ENV KAFKA_RESTART_DELAY=""
 
 # ZooKeeper auto-purge interval (in hours, set to 0 to disable)
-ENV ZOOKEEPER_AUTOPURGE_PURGE_INTERVAL=0
+# Default: 0
+ENV ZOOKEEPER_AUTOPURGE_PURGE_INTERVAL=""
 
 EXPOSE 2181/tcp 9092/tcp
 
@@ -65,6 +78,7 @@ RUN wget --quiet "http://www.apache.org/dyn/closer.cgi?action=download&filename=
     apk add --no-cache bash
 
 COPY kafkaw /opt/kafka/bin
+COPY version /opt/kafka
 RUN chmod +x /opt/kafka/bin/kafkaw
 
 CMD /opt/kafka/bin/kafkaw

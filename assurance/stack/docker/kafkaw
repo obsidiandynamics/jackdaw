@@ -1,8 +1,15 @@
 #!/bin/sh
 set -e
-
-env | grep "^KAFKA_.*$" | sort
-env | grep "^ZOOKEEPER_.*$" | sort
+echo ""
+echo ":::    :::     :::     :::::::::: :::    :::     :::                             ::::::::: :::    :::" 
+echo ":+:   :+:    :+: :+:   :+:        :+:   :+:    :+: :+:             :+:                :+:  :+:   :+:"  
+echo "+:+  +:+    +:+   +:+  +:+        +:+  +:+    +:+   +:+            +:+               +:+   +:+  +:+"   
+echo "+#++:++    +#++:++#++: :#::+::#   +#++:++    +#++:++#++:      +#++:++#++:++         +#+    +#++:++"    
+echo "+#+  +#+   +#+     +#+ +#+        +#+  +#+   +#+     +#+           +#+             +#+     +#+  +#+"   
+echo "#+#   #+#  #+#     #+# #+#        #+#   #+#  #+#     #+#           #+#            #+#      #+#   #+#"  
+echo "###    ### ###     ### ###        ###    ### ###     ###                         ######### ###    ###"
+echo "" 
+echo "Image version: " $(cat /opt/kafka/version)
 
 if [ -f /opt/kafka/config/server.properties.original ]; then
   echo "Restoring original /opt/kafka/config/server.properties file"
@@ -20,35 +27,68 @@ else
   cp /opt/kafka/config/zookeeper.properties /opt/kafka/config/zookeeper.properties.original
 fi
 
-cp /etc/hosts ~/hosts.new
-sed -i "s|^127.0.0.1.*$|127.0.0.1 localhost $KAFKA_ADVERTISED_HOST_NAME|" ~/hosts.new
-cat ~/hosts.new > /etc/hosts
-sed -i "s|^broker.id=.*$|broker.id=$KAFKA_BROKER_ID|" /opt/kafka/config/server.properties
-sed -i "s|^zookeeper.connect=.*$|zookeeper.connect=$KAFKA_ZOOKEEPER_CONNECT|" /opt/kafka/config/server.properties
-sed -i "s|^zookeeper.connection.timeout.ms=.*$|zookeeper.connection.timeout.ms=$KAFKA_ZOOKEEPER_CONNECTION_TIMEOUT|" /opt/kafka/config/server.properties
+echo ""
+echo "Environment variables:"
+env | grep "^KAFKA_.*$" | grep -v "=$" | sort
+env | grep "^ZOOKEEPER_.*$" | grep -v "=$" | sort
+
+if [ "$KAFKA_ADVERTISED_HOST_NAME" != "" ]; then
+  cp /etc/hosts ~/hosts.new
+  sed -i "s|^127.0.0.1.*$|127.0.0.1 localhost $KAFKA_ADVERTISED_HOST_NAME|" ~/hosts.new
+  cat ~/hosts.new > /etc/hosts
+fi
+if [ "$KAFKA_BROKER_ID" != "" ]; then
+  sed -i "s|^broker.id=.*$|broker.id=$KAFKA_BROKER_ID|" /opt/kafka/config/server.properties
+fi
+if [ "$KAFKA_ZOOKEEPER_CONNECT" != "" ]; then
+  sed -i "s|^zookeeper.connect=.*$|zookeeper.connect=$KAFKA_ZOOKEEPER_CONNECT|" /opt/kafka/config/server.properties
+fi
+if [ "$KAFKA_ZOOKEEPER_CONNECTION_TIMEOUT" != "" ]; then
+  sed -i "s|^zookeeper.connection.timeout.ms=.*$|zookeeper.connection.timeout.ms=$KAFKA_ZOOKEEPER_CONNECTION_TIMEOUT|" /opt/kafka/config/server.properties
+else
+  sed -i "s|^zookeeper.connection.timeout.ms=.*$|zookeeper.connection.timeout.ms=10000|" /opt/kafka/config/server.properties
+fi
 echo "" >> /opt/kafka/config/server.properties
-if [ "$KAFKA_LISTENERS" != "PLAINTEXT://:9092" ]; then
+if [ "$KAFKA_LISTENERS" != "" ]; then
   echo "listeners=$KAFKA_LISTENERS" >> /opt/kafka/config/server.properties
 fi
-if [ "$KAFKA_ADVERTISED_LISTENERS" != "PLAINTEXT://:9092" ]; then
+if [ "$KAFKA_ADVERTISED_LISTENERS" != "" ]; then
   echo "advertised.listeners=$KAFKA_ADVERTISED_LISTENERS" >> /opt/kafka/config/server.properties
 fi
-if [ "$KAFKA_LISTENER_SECURITY_PROTOCOL_MAP" != "PLAINTEXT:PLAINTEXT,SSL:SSL,SASL_PLAINTEXT:SASL_PLAINTEXT,SASL_SSL:SASL_SSL" ]; then
+if [ "$KAFKA_LISTENER_SECURITY_PROTOCOL_MAP" != "" ]; then
   echo "listener.security.protocol.map=$KAFKA_LISTENER_SECURITY_PROTOCOL_MAP" >> /opt/kafka/config/server.properties
 fi
-if [ "$KAFKA_INTER_BROKER_LISTENER_NAME" != "PLAINTEXT" ]; then
+if [ "$KAFKA_INTER_BROKER_LISTENER_NAME" != "" ]; then
   echo "inter.broker.listener.name=$KAFKA_INTER_BROKER_LISTENER_NAME" >> /opt/kafka/config/server.properties
 fi
-if [ "$KAFKA_ADVERTISED_HOST_NAME" != "localhost" ]; then
+if [ "$KAFKA_ADVERTISED_HOST_NAME" != "" ]; then
   echo "advertised.host.name=$KAFKA_ADVERTISED_HOST_NAME" >> /opt/kafka/config/server.properties
 fi
-if [ "$KAFKA_ADVERTISED_PORT" != "9092" ]; then
+if [ "$KAFKA_ADVERTISED_PORT" != "" ]; then
   echo "advertised.port=$KAFKA_ADVERTISED_PORT" >> /opt/kafka/config/server.properties
 fi
-echo "zookeeper.session.timeout.ms=$KAFKA_ZOOKEEPER_SESSION_TIMEOUT" >> /opt/kafka/config/server.properties
+if [ "$KAFKA_ZOOKEEPER_SESSION_TIMEOUT" != "" ]; then
+  echo "zookeeper.session.timeout.ms=$KAFKA_ZOOKEEPER_SESSION_TIMEOUT" >> /opt/kafka/config/server.properties
+fi
+echo ""
+echo "Transformed server.properties:"
+cat /opt/kafka/config/server.properties | grep "^[a-z]"
 echo "" >> /opt/kafka/config/zookeeper.properties
-echo "autopurge.purgeInterval=$ZOOKEEPER_AUTOPURGE_PURGE_INTERVAL" >> /opt/kafka/config/zookeeper.properties
+if [ "$ZOOKEEPER_AUTOPURGE_PURGE_INTERVAL" != "" ]; then
+  echo "autopurge.purgeInterval=$ZOOKEEPER_AUTOPURGE_PURGE_INTERVAL" >> /opt/kafka/config/zookeeper.properties
+fi
 /opt/kafka/bin/zookeeper-server-start.sh -daemon /opt/kafka/config/zookeeper.properties
+echo ""
+echo "Transformed zookeeper.properties:"
+cat /opt/kafka/config/zookeeper.properties | grep "^[a-z]"
+echo ""
+
+if [ "$KAFKA_RESTART_ATTEMPTS" == "" ]; then
+  KAFKA_RESTART_ATTEMPTS=3
+fi
+if [ "$KAFKA_RESTART_DELAY" == "" ]; then
+  KAFKA_RESTART_DELAY=5
+fi
 
 set +e
 restarts_remaining=$KAFKA_RESTART_ATTEMPTS
