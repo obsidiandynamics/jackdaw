@@ -5,6 +5,8 @@ import java.util.*;
 
 import org.apache.kafka.clients.consumer.*;
 import org.apache.kafka.clients.producer.*;
+import org.apache.kafka.common.header.*;
+import org.apache.kafka.common.header.internals.*;
 import org.apache.kafka.common.serialization.*;
 
 import com.obsidiandynamics.jackdaw.*;
@@ -58,7 +60,8 @@ public final class PubSubSample {
     private void send() {
       final long now = System.currentTimeMillis();
       final String msg = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSZ").format(new Date(now));
-      final ProducerRecord<String, String> rec = new ProducerRecord<>(TOPIC, String.valueOf(now), msg);
+      final Headers headers = new RecordHeaders().add("publisher", PubSubSample.class.getSimpleName().getBytes());
+      final ProducerRecord<String, String> rec = new ProducerRecord<>(TOPIC, null, String.valueOf(now), msg, headers);
       producer.send(rec, (metadata, exception) -> {
         zlg.i("[%s], key: %s, value: %s", z -> z.arg(metadata).arg(rec::key).arg(rec::value).tag("tx"));
       });
