@@ -70,17 +70,21 @@ public final class KafkaDockerTest {
     final MockLogTarget target = new MockLogTarget();
     final Shell shell = mock(Shell.class);
     
+    final String host = "127.0.0.1";
+    final int port;
     try (ServerSocket socket = randomSocket()) {
+      port = socket.getLocalPort();
       final KafkaDocker kd = new KafkaDocker()
           .withLog(target.logger())
-          .withPort(socket.getLocalPort())
+          .withHost(host)
+          .withPort(port)
           .withShell(shell);
       kd.start();
     }
     
     verifyNoMoreInteractions(shell);
     target.entries().forLevel(LogLevel.INFO).containing("Starting Kafka").assertCount(1);
-    target.entries().forLevel(LogLevel.INFO).containing("Broker already running").assertCount(1);
+    target.entries().forLevel(LogLevel.INFO).containing("Broker already running [" + host + ":" + port + "]").assertCount(1);
   }
   
   @Test

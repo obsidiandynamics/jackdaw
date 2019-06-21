@@ -24,6 +24,8 @@ public final class KafkaDocker {
   
   private int brokerAwaitMillis = 600_000;
   
+  private String host = "localhost";
+  
   private int port = 9092;
   
   public KafkaDocker withLog(Zlg zlg) {
@@ -60,6 +62,11 @@ public final class KafkaDocker {
     this.brokerAwaitMillis = brokerAwaitMillis;
     return this;
   }
+  
+  public KafkaDocker withHost(String host) {
+    this.host = host;
+    return this;
+  }
 
   public KafkaDocker withPort(int port) {
     this.port = port;
@@ -86,7 +93,7 @@ public final class KafkaDocker {
   }
   
   public boolean isRunning() {
-    return isRemotePortListening("localhost", port);
+    return isRemotePortListening(host, port);
   }
   
   private static boolean isRemotePortListening(String host, int port) {
@@ -101,13 +108,13 @@ public final class KafkaDocker {
   public void start() throws Exception {
     zlg.i("Starting Kafka stack [%s]...", z -> z.arg(composeFile));
     if (isRunning()) {
-      zlg.i("Broker already running [port %d]", z -> z.arg(port));
+      zlg.i("Broker already running [%s:%d]", z -> z.arg(host).arg(port));
       return;
     }
 
     getCompose().checkInstalled();
     final long containerStartupMillis = Threads.tookMillis(getCompose()::up);
-    zlg.i("Container took %,d ms; now waiting for broker to come up...", z -> z.arg(containerStartupMillis));
+    zlg.i("Container took %,d ms; now waiting for broker to come up on %s:%d...", z -> z.arg(containerStartupMillis).arg(host).arg(port));
     final long brokerStartupMillis = awaitBroker();
     zlg.i("Broker up [waited %,d ms]", z -> z.arg(brokerStartupMillis));
   }
