@@ -16,7 +16,7 @@ import com.obsidiandynamics.func.*;
 import com.obsidiandynamics.jackdaw.SerdeProps.*;
 import com.obsidiandynamics.threads.*;
 
-public final class ProducerPipeTest {
+public final class ProducerPipeMockKafkaTest {
   private final Timesert wait = Timesert.wait(10_000);
   
   private ProducerPipe<String, String> pipe;
@@ -90,14 +90,14 @@ public final class ProducerPipeTest {
         .withSendRuntimeExceptionGenerator(r -> cause);
     final SerdeProps props = new SerdeProps(SerdePair.STRING);
     final Producer<String, String> producer = kafka.getProducer(props.producer());
-    pipe = new ProducerPipe<>(new ProducerPipeConfig().withAsync(false), producer, ProducerPipe.class.getSimpleName(), eh);
+    pipe = new ProducerPipe<>(new ProducerPipeConfig().withAsync(false).withSendAttempts(2), producer, ProducerPipe.class.getSimpleName(), eh);
 
     final String msg = "B100";
     final ProducerRecord<String, String> rec = new ProducerRecord<>("test", msg);
     pipe.send(rec, null);
     
     wait.until(() -> {
-      verify(eh).onException(isNotNull(), eq(cause));
+      verify(eh, times(2)).onException(isNotNull(), isA(ProducerException.class));
     });
   }
 }

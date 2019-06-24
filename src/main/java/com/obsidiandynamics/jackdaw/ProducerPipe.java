@@ -6,6 +6,7 @@ import org.apache.kafka.clients.producer.*;
 
 import com.obsidiandynamics.func.*;
 import com.obsidiandynamics.nodequeue.*;
+import com.obsidiandynamics.retry.*;
 import com.obsidiandynamics.worker.*;
 import com.obsidiandynamics.worker.Terminator;
 
@@ -31,7 +32,7 @@ public final class ProducerPipe<K, V> implements Terminable, Joinable {
   
   private final WorkerThread thread;
   
-  private final ExceptionHandler exceptionHandler;
+  private final Retry retry;
   
   private int yields;
   
@@ -39,7 +40,11 @@ public final class ProducerPipe<K, V> implements Terminable, Joinable {
   
   public ProducerPipe(ProducerPipeConfig config, Producer<K, V> producer, String threadName, ExceptionHandler exceptionHandler) {
     this.producer = producer;
-    this.exceptionHandler = exceptionHandler;
+    this.retry = new Retry()
+        .withFaultHandler(exceptionHandler)
+        .withErrorHandler(exceptionHandler)
+        .withAttempts(config.getSendAttempts());
+    
     if (config.isAsync()) {
       queue = new NodeQueue<>();
       queueConsumer = queue.consumer();
@@ -82,10 +87,18 @@ public final class ProducerPipe<K, V> implements Terminable, Joinable {
   
   private void sendNow(ProducerRecord<K, V> record, Callback callback) {
     try {
-      producer.send(record, callback);
-    } catch (Throwable e) {
-      if (! producerDisposed) {
-        exceptionHandler.onException(String.format("Error sending %s", record), e);
+      retry.run(() -> {
+        try {
+          producer.send(record, callback);
+        } catch (RuntimeException e) {
+          if (! producerDisposed) {
+            throw new ProducerException(String.format("Error sending %s", record), e);
+          }
+        }
+      });
+    } catch (RuntimeException e) {
+      if (callback != null) {
+        callback.onCompletion(null, e);
       }
     }
   }

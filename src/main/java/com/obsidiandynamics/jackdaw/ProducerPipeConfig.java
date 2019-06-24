@@ -7,6 +7,9 @@ public final class ProducerPipeConfig {
   @YInject
   private boolean async = true;
   
+  @YInject
+  private int sendAttempts = 10;
+
   public boolean isAsync() {
     return async;
   }
@@ -20,8 +23,21 @@ public final class ProducerPipeConfig {
     return this;
   }
   
+  public int getSendAttempts() {
+    return sendAttempts;
+  }
+
+  public void setSendAttempts(int sendAttempts) {
+    this.sendAttempts = sendAttempts;
+  }
+  
+  public ProducerPipeConfig withSendAttempts(int sendAttempts) {
+    setSendAttempts(sendAttempts);
+    return this;
+  }
+  
   @Override
   public String toString() {
-    return ProducerPipeConfig.class.getSimpleName() + " [async=" + async + "]";
+    return ProducerPipeConfig.class.getSimpleName() + " [async=" + async + ", sendAttempts=" + sendAttempts + "]";
   }
 }
