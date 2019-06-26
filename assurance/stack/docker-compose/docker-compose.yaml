@@ -2,7 +2,7 @@ version: "2"
 services:
   kafka:
     image: obsidiandynamics/kafka
-    restart: always
+    restart: "no"
     ports:
       - "2181:2181"
       - "9092:9092"

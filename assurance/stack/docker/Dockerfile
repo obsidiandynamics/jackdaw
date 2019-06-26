@@ -1,6 +1,6 @@
 FROM openjdk:8-jre-alpine
 
-ARG KAFKA_VERSION=2.2.1
+ARG KAFKA_VERSION=2.3.0
 ARG SCALA_VERSION=2.12
 
 VOLUME ["/var/lib/kafka"]
@@ -68,7 +68,7 @@ RUN wget --quiet "http://www.apache.org/dyn/closer.cgi?action=download&filename=
     gpgconf --kill gpg-agent && \
     apk del --purge gnupg && \
     rm -r ~/.gnupg && \
-    mkdir /opt && \
+    mkdir -p /opt && \
     tar -C /opt -zxf /tmp/kafka_${SCALA_VERSION}-${KAFKA_VERSION}.tgz && \
     rm /tmp/KEYS /tmp/kafka_${SCALA_VERSION}-${KAFKA_VERSION}.tgz /tmp/kafka_${SCALA_VERSION}-${KAFKA_VERSION}.tgz.asc && \
     ln -s kafka_${SCALA_VERSION}-${KAFKA_VERSION} /opt/kafka && \
