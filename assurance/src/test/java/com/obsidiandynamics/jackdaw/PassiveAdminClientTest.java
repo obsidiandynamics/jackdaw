@@ -7,6 +7,7 @@ import static org.junit.Assert.*;
 import java.util.*;
 import java.util.concurrent.*;
 
+import org.apache.kafka.clients.admin.*;
 import org.apache.kafka.common.acl.*;
 import org.apache.kafka.common.resource.*;
 import org.assertj.core.api.*;
@@ -85,7 +86,12 @@ public final class PassiveAdminClientTest {
 
   @Test
   public void testAlterConfigs() throws Exception {
-    assertEquals(emptyMap(), adminClient.alterConfigs(emptyMap()).values());
+    assertEquals(emptyMap(), adminClient.alterConfigs(emptyMap(), new AlterConfigsOptions()).values());
+  }
+  
+  @Test
+  public void testIncrementalAlterConfigs() throws Exception {
+    assertEquals(emptyMap(), adminClient.incrementalAlterConfigs(emptyMap()).values());
   }
 
   @Test

@@ -86,7 +86,7 @@ public final class PassiveAdminClient extends AdminClient {
 
   @Override
   public DescribeClusterResult describeCluster(DescribeClusterOptions options) {
-    return new XDescribeClusterResult(completeNull(), completeNull(), completeNull());
+    return new XDescribeClusterResult(completeNull(), completeNull(), completeNull(), completeNull());
   }
 
   @Override
@@ -111,6 +111,12 @@ public final class PassiveAdminClient extends AdminClient {
 
   @Override
   public AlterConfigsResult alterConfigs(Map<ConfigResource, Config> configs, AlterConfigsOptions options) {
+    return new XAlterConfigsResult(complete(configs.keySet(), identity(), provideNull()));
+  }
+
+  @Override
+  public AlterConfigsResult incrementalAlterConfigs(Map<ConfigResource, Collection<AlterConfigOp>> configs,
+                                                    AlterConfigsOptions options) {
     return new XAlterConfigsResult(complete(configs.keySet(), identity(), provideNull()));
   }
 
