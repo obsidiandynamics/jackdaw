@@ -160,7 +160,7 @@ public final class KafkaAdmin implements AutoCloseable {
                                                            new CreateTopicsOptions().timeoutMs(timeoutMillis));
       awaitFutures(timeoutMillis, result.values().values());
 
-      final Set<String> created = new HashSet<>(topics.size());
+      final Set<String> created = new HashSet<>(topics.size(), 1f);
       for (Map.Entry<String, KafkaFuture<Void>> entry : result.values().entrySet()) {
         try {
           entry.getValue().get();
@@ -200,7 +200,7 @@ public final class KafkaAdmin implements AutoCloseable {
                                                            new DeleteTopicsOptions().timeoutMs(timeoutMillis));
       awaitFutures(timeoutMillis, result.values().values());
 
-      final Set<String> deleted = new HashSet<>(topics.size());
+      final Set<String> deleted = new HashSet<>(topics.size(), 1f);
       for (Map.Entry<String, KafkaFuture<Void>> entry : result.values().entrySet()) {
         try {
           entry.getValue().get();
@@ -278,7 +278,7 @@ public final class KafkaAdmin implements AutoCloseable {
                                                                            new DeleteConsumerGroupsOptions().timeoutMs(timeoutMillis));
       awaitFutures(timeoutMillis, result.deletedGroups().values());
 
-      final Set<String> deleted = new HashSet<>(groups.size());
+      final Set<String> deleted = new HashSet<>(groups.size(), 1f);
       for (Map.Entry<String, KafkaFuture<Void>> entry : result.deletedGroups().entrySet()) {
         try {
           entry.getValue().get();
