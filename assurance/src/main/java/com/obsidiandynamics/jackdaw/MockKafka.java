@@ -233,7 +233,7 @@ public final class MockKafka<K, V> implements Kafka<K, V> {
             zlg.t("Assigning %s", z -> z.arg(topic).tag("MockKafka"));
             synchronized (lock) {
               final List<TopicPartition> partitions = new ArrayList<>(maxPartitions);
-              final Map<TopicPartition, Long> offsetRecords = new HashMap<>();
+              final Map<TopicPartition, Long> offsetRecords = new HashMap<>(maxPartitions, 1f);
               final List<ConsumerRecord<K, V>> records = new ArrayList<>();
               
               for (int partIdx = 0; partIdx < maxPartitions; partIdx++) {
@@ -268,7 +268,7 @@ public final class MockKafka<K, V> implements Kafka<K, V> {
       @Override 
       public List<PartitionInfo> partitionsFor(String topic) {
         final List<PartitionInfo> newInfos = new ArrayList<>(maxPartitions);
-        final Map<TopicPartition, Long> offsets = new HashMap<>(maxPartitions);
+        final Map<TopicPartition, Long> offsets = new HashMap<>(maxPartitions, 1f);
         
         for (int i = 0; i < maxPartitions; i++) {
           newInfos.add(new PartitionInfo(topic, i, null, new Node[0], new Node[0]));

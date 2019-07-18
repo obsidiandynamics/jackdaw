@@ -41,7 +41,7 @@ public final class PassiveAdminClient extends AdminClient {
   private static <T, K, V> Map<K, KafkaFuture<V>> complete(Collection<T> inputs, 
                                                            Function<? super T, ? extends K> keyExtractor, 
                                                            Function<? super T, ? extends V> valueGenerator) {
-    final Map<K, KafkaFuture<V>> futures = new HashMap<>();
+    final Map<K, KafkaFuture<V>> futures = new HashMap<>(inputs.size(), 1f);
     for (T input : inputs) {
       futures.put(keyExtractor.apply(input), complete(valueGenerator.apply(input)));
     }

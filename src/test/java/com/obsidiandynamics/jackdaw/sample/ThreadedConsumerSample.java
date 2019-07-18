@@ -122,7 +122,7 @@ public final class ThreadedConsumerSample {
   }
   
   private static Map<TopicPartition, OffsetAndMetadata> offsetsToCommit(Map<TopicPartition, OffsetAndMetadata> confirmedOffsets) {
-    final Map<TopicPartition, OffsetAndMetadata> commitOffsets = new HashMap<>();
+    final Map<TopicPartition, OffsetAndMetadata> commitOffsets = new HashMap<>(confirmedOffsets.size(), 1f);
     for (Map.Entry<TopicPartition, OffsetAndMetadata> confirmedEntry : confirmedOffsets.entrySet()) {
       commitOffsets.put(confirmedEntry.getKey(), new OffsetAndMetadata(confirmedEntry.getValue().offset() + 1));
     }
