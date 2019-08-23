@@ -7,3 +7,4 @@ queries:
   - exclude: java/uncaught-number-format-exception
   - exclude: java/notify-instead-of-notify-all 
   - exclude: java/toctou-race-condition
+  - exclude: java/similar-file

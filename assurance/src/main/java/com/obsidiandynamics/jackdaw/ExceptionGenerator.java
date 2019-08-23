@@ -4,8 +4,8 @@ package com.obsidiandynamics.jackdaw;
 /**
  *  Simulates the injection of exceptions into a mocked Kafka client.
  *  
- *  @param <C> The context type.
- *  @param <X> The exception type.
+ *  @param <C> Context type.
+ *  @param <X> Exception type.
  */
 @FunctionalInterface
 public interface ExceptionGenerator<C, X extends Throwable> {
@@ -27,20 +27,6 @@ public interface ExceptionGenerator<C, X extends Throwable> {
   }
   
   static <C, X extends Throwable> ExceptionGenerator<C, X> times(X exception, int times) {
-    return new ExceptionGenerator<C, X>() {
-      private final X ex = exception;
-      private int thrown;
-      @Override public X inspect(C obj) {
-        if (thrown < times) {
-          try {
-            return ex;
-          } finally {
-            thrown++;
-          }
-        } else {
-          return null;
-        }
-      }
-    };
+    return new CountingExceptionGenerator<>(exception, times);
   }
 }

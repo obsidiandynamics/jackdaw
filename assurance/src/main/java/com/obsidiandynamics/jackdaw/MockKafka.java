@@ -95,7 +95,7 @@ public final class MockKafka<K, V> implements Kafka<K, V> {
           }
           
           @Override 
-          public Future<RecordMetadata> send(ProducerRecord<K, V> r, Callback callback) {
+          public synchronized Future<RecordMetadata> send(ProducerRecord<K, V> r, Callback callback) {
             if (closed.get()) throw new IllegalStateException("Cannot send over a closed producer");
             final RuntimeException generatedRuntime = sendRuntimeExceptionGenerator.inspect(r);
             if (generatedRuntime != null) throw generatedRuntime;
@@ -214,7 +214,7 @@ public final class MockKafka<K, V> implements Kafka<K, V> {
       }
       
       @Override 
-      public void commitAsync(Map<TopicPartition, OffsetAndMetadata> offsets, OffsetCommitCallback callback) {
+      public synchronized void commitAsync(Map<TopicPartition, OffsetAndMetadata> offsets, OffsetCommitCallback callback) {
         final Exception generated = commitExceptionGenerator.inspect(offsets);
         if (generated != null) {
           if (callback != null) callback.onComplete(offsets, generated);
@@ -224,7 +224,7 @@ public final class MockKafka<K, V> implements Kafka<K, V> {
       }
       
       @Override 
-      public void subscribe(Collection<String> topics, ConsumerRebalanceListener rebalanceListener) {
+      public synchronized void subscribe(Collection<String> topics, ConsumerRebalanceListener rebalanceListener) {
         if (attached) {
           rebalanceListener.onPartitionsRevoked(Collections.emptySet());
           final List<TopicPartition> subscribedPartitions = new ArrayList<>();
@@ -260,12 +260,12 @@ public final class MockKafka<K, V> implements Kafka<K, V> {
       }
       
       @Override 
-      public void subscribe(Collection<String> topics) {
+      public synchronized void subscribe(Collection<String> topics) {
         subscribe(topics, new NoOpConsumerRebalanceListener());
       }
       
       @Override 
-      public List<PartitionInfo> partitionsFor(String topic) {
+      public synchronized List<PartitionInfo> partitionsFor(String topic) {
         final List<PartitionInfo> newInfos = new ArrayList<>(maxPartitions);
         final Map<TopicPartition, Long> offsets = new HashMap<>(maxPartitions, 1f);
         
@@ -282,7 +282,7 @@ public final class MockKafka<K, V> implements Kafka<K, V> {
       }
       
       @Override 
-      public ConsumerRecords<K, V> poll(Duration timeout) {
+      public synchronized ConsumerRecords<K, V> poll(Duration timeout) {
         final long timeoutMillis = timeout.toMillis();
         // super.poll() disregards the timeout, resulting in a spin loop in the absence of records
         // and resource exhaustion on single-CPU machines
@@ -310,7 +310,7 @@ public final class MockKafka<K, V> implements Kafka<K, V> {
       }
       
       @Override 
-      public void close() {
+      public synchronized void close() {
         synchronized (lock) {
           consumers.remove(this);
         }
