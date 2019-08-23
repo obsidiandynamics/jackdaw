@@ -1,6 +1,6 @@
 plugins {
   id "com.jfrog.bintray" version "1.8.4"
-  id "com.github.ben-manes.versions" version "0.21.0"
+  id "com.github.ben-manes.versions" version "0.22.0"
 }
 apply plugin: "maven-publish"
 apply plugin: "com.jfrog.bintray"
@@ -51,7 +51,7 @@ allprojects {
   }
   
   ext {
-    assertjVersion = "3.12.2"
+    assertjVersion = "3.13.2"
     equalsverifierVersion = "3.1.9"
     fulcrumVersion = "0.34.0"
     junitVersion = "4.12"
@@ -122,6 +122,7 @@ allprojects {
     additionalSourceDirs.from = files(sourceSets.main.allSource.srcDirs)
     sourceDirectories.from = files(sourceSets.main.allSource.srcDirs)
     classDirectories.from = files(sourceSets.main.output)
+    executionData.from = files("$buildDir/jacoco/test.exec") + file("$buildDir/jacoco/integrationTest.exec")
     reports {
       html.enabled true
       xml.enabled true
@@ -145,12 +146,21 @@ subprojects {
   }
 }
 
+task jacocoMerge(type: JacocoMerge) {
+  mustRunAfter = allprojects.test + allprojects.integrationTest
+  executionData = files(allprojects.jacocoTestReport.executionData)
+  doFirst {
+    executionData = files(files(allprojects.jacocoTestReport.executionData).findAll { it.exists() })
+  }
+}
+
 task jacocoRootReport(type: JacocoReport) {
-  dependsOn = allprojects.test
+  dependsOn jacocoMerge
+  mustRunAfter = allprojects.test + allprojects.integrationTest
   additionalSourceDirs.from = files(allprojects.sourceSets.main.allSource.srcDirs)
   sourceDirectories.from = files(allprojects.sourceSets.main.allSource.srcDirs)
   classDirectories.from = files(allprojects.sourceSets.main.output)
-  executionData.from = files(allprojects.jacocoTestReport.executionData)
+  executionData jacocoMerge.destinationFile
   reports {
     html.enabled true
     xml.enabled true
@@ -158,11 +168,6 @@ task jacocoRootReport(type: JacocoReport) {
   }
   onlyIf = {
     true
-  }
-  doFirst {
-    executionData.from = files(executionData.findAll {
-      it.exists()
-    })
   }
   afterEvaluate {
     classDirectories.from = files(classDirectories.files.collect {
