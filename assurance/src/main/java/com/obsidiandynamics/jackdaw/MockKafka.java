@@ -208,7 +208,6 @@ public final class MockKafka<K, V> implements Kafka<K, V> {
       consumers = new ArrayList<>(1);
     }
     
-    
     final FallibleMockConsumer<K, V> consumer = new FallibleMockConsumer<K, V>(OffsetResetStrategy.EARLIEST) {
       {
         this.commitExceptionGenerator = MockKafka.this.commitExceptionGenerator;
