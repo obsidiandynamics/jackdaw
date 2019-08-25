@@ -148,9 +148,13 @@ public final class MockKafka<K, V> implements Kafka<K, V> {
     final TopicPartition part = new TopicPartition(r.topic(), partition);
     synchronized (lock) {
       backlog.add(cr);
-      for (MockConsumer<K, V> consumer : consumers) {
+      for (FallibleMockConsumer<K, V> consumer : consumers) {
         if (consumer.assignment().contains(part)) {
           consumer.addRecord(cr);
+          synchronized (consumer.queuedMessagesMonitor) {
+            consumer.queuedMessages = true;
+            consumer.queuedMessagesMonitor.notify();
+          }
         }
       }
       
@@ -196,6 +200,8 @@ public final class MockKafka<K, V> implements Kafka<K, V> {
   private FallibleMockConsumer<K, V> createDetachedConsumer() {
     return createConsumer(false);
   }
+  
+  private static final int MIN_POLL_WAIT = 1_000;
   
   private FallibleMockConsumer<K, V> createConsumer(boolean attached) {
     final Object lock;
@@ -298,11 +304,16 @@ public final class MockKafka<K, V> implements Kafka<K, V> {
             if (remainingMillis <= 0) {
               return recs;
             } else {
-              try {
-                Thread.sleep(Math.min(10, remainingMillis));
-              } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-                return recs;
+              synchronized (queuedMessagesMonitor) {
+                if (! queuedMessages) {
+                  try {
+                    queuedMessagesMonitor.wait(Math.min(MIN_POLL_WAIT, remainingMillis));
+                  } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    return recs;
+                  }
+                }
+                queuedMessages = false;
               }
             }
           }

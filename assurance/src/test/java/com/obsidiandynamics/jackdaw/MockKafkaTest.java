@@ -311,6 +311,25 @@ public final class MockKafkaTest {
   }
 
   /**
+   *  Tests consumption of messages, having interrupted the consumer thread beforehand.
+   */
+  @Test
+  public void testConsumeInterrupted() {
+    final MockKafka<String, String> kafka = new MockKafka<>(2, 1);
+    final SerdeProps props = new SerdeProps(SerdePair.STRING);
+    
+    
+    final Consumer<String, String> consumer = kafka.getConsumer(props.consumer());
+    consumer.subscribe(Arrays.asList("different"));
+    Thread.currentThread().interrupt();
+    try {
+      assertEquals(0, consumer.poll(Duration.ofMillis(10_000)).count());
+    } finally {
+      assertTrue(Thread.interrupted());
+    }
+  }
+
+  /**
    *  Tests consumption of messages from a topic different from that of the publisher. In
    *  this particular scenario, the consumer subscribes to a topic <em>after</em> messages
    *  have been published (to a different topic).
