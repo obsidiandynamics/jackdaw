@@ -1,6 +1,5 @@
 package com.obsidiandynamics.jackdaw;
 
-
 /**
  *  Simulates the injection of exceptions into a mocked Kafka client.
  *  
@@ -16,10 +15,10 @@ public interface ExceptionGenerator<C, X extends Throwable> {
    *  @param context The context to inspect.
    *  @return An exception, or {@code null}.
    */
-  X inspect(C context);
+  X inspect(C context); // lgtm [java/unused-parameter]
   
   static <C, X extends Throwable> ExceptionGenerator<C, X> never() {
-    return record -> null;
+    return __ -> null;
   }
   
   static <C, X extends Throwable> ExceptionGenerator<C, X> once(X exception) {

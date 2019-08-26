@@ -13,7 +13,7 @@ final class CountingExceptionGenerator<C, X extends Throwable> implements Except
   }
   
   @Override 
-  public X inspect(C obj) {
+  public X inspect(C context) {
     if (thrown < times) {
       try {
         return exception;
