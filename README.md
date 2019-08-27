@@ -5,6 +5,7 @@ Simple configuration and mocking of Kafka clients.
 [![Download](https://api.bintray.com/packages/obsidiandynamics/jackdaw/jackdaw-core/images/download.svg) ](https://bintray.com/obsidiandynamics/jackdaw/jackdaw-core/_latestVersion)
 [![Build](https://travis-ci.org/obsidiandynamics/jackdaw.svg?branch=master) ](https://travis-ci.org/obsidiandynamics/jackdaw#)
 [![codecov](https://codecov.io/gh/obsidiandynamics/jackdaw/branch/master/graph/badge.svg)](https://codecov.io/gh/obsidiandynamics/jackdaw)
+[![Language grade: Java](https://img.shields.io/lgtm/grade/java/g/obsidiandynamics/jackdaw.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/obsidiandynamics/jackdaw/context:java)
 
 # Why Jackdaw?
 While Kafka is an awesome message streaming platform, it's also a little on the heavy side — requiring a cluster of brokers at all times. This makes rapid development and component/integration testing harder than it should be; firstly, you must have access to a broker; secondly, connection establishment and topic consumer rebalancing times can be substantial, blowing out the build/test times. If only you could simulate the entire Kafka infrastructure in a JVM so that messages can be published and consumed without relying on Kafka... After all, you just want to know that _your_ application components integrate correctly; you aren't trying to test Kafka.
