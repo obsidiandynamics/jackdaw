@@ -39,7 +39,7 @@ public final class ConsumerPipeConfig {
   }
 
   public void validate() {
-    mustBeGreater(backlogBatches, 0, illegalArgument("Backlog batches must be greater or equal to 1"));
+    mustBeGreaterOrEqual(backlogBatches, 1, illegalArgument("Backlog batches must be greater or equal to 1"));
   }
   
   @Override

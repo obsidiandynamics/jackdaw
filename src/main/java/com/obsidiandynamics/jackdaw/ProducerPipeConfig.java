@@ -39,7 +39,7 @@ public final class ProducerPipeConfig {
   }
 
   public void validate() {
-    mustBeGreater(sendAttempts, 0, illegalArgument("Send attempts must be greater or equal to 1"));
+    mustBeGreaterOrEqual(sendAttempts, 1, illegalArgument("Send attempts must be greater or equal to 1"));
   }
   
   @Override
