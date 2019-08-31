@@ -27,8 +27,14 @@ public final class ProducerPipeConfigTest {
         .withParser(new SnakeyamlParser())
         .fromStream(ProducerPipeConfigTest.class.getClassLoader().getResourceAsStream("producerpipe.conf"))
         .map(ProducerPipeConfig.class);
+    config.validate();
     
     assertEquals(true, config.isAsync());
     Assertions.assertToStringOverride(config);
+  }
+  
+  @Test
+  public void testValidate_default() {
+    new ProducerPipeConfig().validate();
   }
 }

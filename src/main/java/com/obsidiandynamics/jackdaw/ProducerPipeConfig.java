@@ -12,6 +12,10 @@ public final class ProducerPipeConfig {
   @YInject
   private int sendAttempts = 10;
 
+  public void validate() {
+    mustBeGreaterOrEqual(sendAttempts, 1, illegalArgument("Send attempts must be greater or equal to 1"));
+  }
+
   public boolean isAsync() {
     return async;
   }
@@ -36,10 +40,6 @@ public final class ProducerPipeConfig {
   public ProducerPipeConfig withSendAttempts(int sendAttempts) {
     setSendAttempts(sendAttempts);
     return this;
-  }
-
-  public void validate() {
-    mustBeGreaterOrEqual(sendAttempts, 1, illegalArgument("Send attempts must be greater or equal to 1"));
   }
   
   @Override

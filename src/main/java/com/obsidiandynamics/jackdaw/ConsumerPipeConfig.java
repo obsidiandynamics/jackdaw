@@ -11,6 +11,12 @@ public final class ConsumerPipeConfig {
   
   @YInject
   private int backlogBatches = 128;
+
+  public void validate() {
+    if (async) {
+      mustBeGreaterOrEqual(backlogBatches, 1, illegalArgument("Backlog batches must be greater or equal to 1"));
+    }
+  }
   
   public boolean isAsync() {
     return async;
@@ -36,10 +42,6 @@ public final class ConsumerPipeConfig {
   public ConsumerPipeConfig withBacklogBatches(int backlogBatches) {
     setBacklogBatches(backlogBatches);
     return this;
-  }
-
-  public void validate() {
-    mustBeGreaterOrEqual(backlogBatches, 1, illegalArgument("Backlog batches must be greater or equal to 1"));
   }
   
   @Override

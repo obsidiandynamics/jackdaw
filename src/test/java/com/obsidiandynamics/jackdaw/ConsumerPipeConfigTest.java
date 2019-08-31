@@ -27,6 +27,7 @@ public final class ConsumerPipeConfigTest {
         .withParser(new SnakeyamlParser())
         .fromStream(ConsumerPipeConfigTest.class.getClassLoader().getResourceAsStream("consumerpipe.conf"))
         .map(ConsumerPipeConfig.class);
+    config.validate();
     
     assertEquals(false, config.isAsync());
     assertEquals(16, config.getBacklogBatches());
@@ -38,8 +39,14 @@ public final class ConsumerPipeConfigTest {
     final ConsumerPipeConfig config = new ConsumerPipeConfig()
         .withAsync(true)
         .withBacklogBatches(10);
+    config.validate();
     
     assertTrue(config.isAsync());
     assertEquals(10, config.getBacklogBatches());
+  }
+  
+  @Test
+  public void testValidate_default() {
+    new ConsumerPipeConfig().validate();
   }
 }
