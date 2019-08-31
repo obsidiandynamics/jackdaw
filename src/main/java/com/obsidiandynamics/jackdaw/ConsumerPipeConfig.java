@@ -1,5 +1,7 @@
 package com.obsidiandynamics.jackdaw;
 
+import static com.obsidiandynamics.func.Functions.*;
+
 import com.obsidiandynamics.yconf.*;
 
 @Y
@@ -34,6 +36,10 @@ public final class ConsumerPipeConfig {
   public ConsumerPipeConfig withBacklogBatches(int backlogBatches) {
     setBacklogBatches(backlogBatches);
     return this;
+  }
+
+  public void validate() {
+    mustBeGreater(backlogBatches, 0, illegalArgument("Backlog batches must be greater or equal to 1"));
   }
   
   @Override

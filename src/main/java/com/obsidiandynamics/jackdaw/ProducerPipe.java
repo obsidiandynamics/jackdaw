@@ -1,5 +1,7 @@
 package com.obsidiandynamics.jackdaw;
 
+import static com.obsidiandynamics.func.Functions.*;
+
 import java.util.*;
 
 import org.apache.kafka.clients.producer.*;
@@ -39,13 +41,16 @@ public final class ProducerPipe<K, V> implements Terminable, Joinable {
   private volatile boolean producerDisposed;
   
   public ProducerPipe(ProducerPipeConfig config, Producer<K, V> producer, String threadName, ExceptionHandler exceptionHandler) {
-    this.producer = producer;
+    mustExist(config, "Config cannot be null").validate();
+    mustExist(exceptionHandler, "Exception handler cannot be null");
+    this.producer = mustExist(producer, "Producer cannot be null");
     this.retry = new Retry()
         .withFaultHandler(exceptionHandler)
         .withErrorHandler(exceptionHandler)
         .withAttempts(config.getSendAttempts());
     
     if (config.isAsync()) {
+      mustExist(threadName, "Thread name cannot be null");
       queue = new NodeQueue<>();
       queueConsumer = queue.consumer();
       thread = WorkerThread.builder()

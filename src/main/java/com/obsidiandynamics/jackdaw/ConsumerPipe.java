@@ -19,7 +19,8 @@ public final class ConsumerPipe<K, V> implements Terminable, Joinable {
   private final WorkerThread thread;
   
   public ConsumerPipe(ConsumerPipeConfig config, RecordHandler<K, V> handler, String threadName) {
-    this.handler = handler;
+    mustExist(config, "Config cannot be null").validate();
+    this.handler = mustExist(handler, "Handler cannot be null");
     if (config.isAsync()) {
       mustExist(threadName, "Thread name cannot be null");
       queue = new LinkedBlockingQueue<>(config.getBacklogBatches());

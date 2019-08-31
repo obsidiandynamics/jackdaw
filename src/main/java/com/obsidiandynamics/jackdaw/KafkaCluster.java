@@ -1,5 +1,6 @@
 package com.obsidiandynamics.jackdaw;
 
+import static com.obsidiandynamics.func.Functions.*;
 import static com.obsidiandynamics.props.PropsFormat.*;
 import static org.apache.kafka.clients.CommonClientConfigs.*;
 
@@ -19,7 +20,7 @@ public final class KafkaCluster<K, V> implements Kafka<K, V> {
   private final KafkaClusterConfig config;
 
   public KafkaCluster(@YInject(name="clusterConfig") KafkaClusterConfig config) {
-    config.validate();
+    mustExist(config, "Cluster config cannot be null").validate();
     this.config = config;
   }
 
@@ -28,16 +29,23 @@ public final class KafkaCluster<K, V> implements Kafka<K, V> {
   }
 
   private Properties mergeProducerProps(Properties defaults, Properties overrides) {
+    mustExist(defaults, "Defaults cannot be null");
+    mustExist(overrides, "Overrides cannot be null");
     return Props.merge(defaults, config.getProducerCombinedProps(), overrides);
   }
 
   @Override
   public KafkaProducer<K, V> getProducer(Properties defaults, Properties overrides) {
+    mustExist(defaults, "Defaults cannot be null");
+    mustExist(overrides, "Overrides cannot be null");
     return new KafkaProducer<>(mergeProducerProps(defaults, overrides));
   }
 
   @Override
   public void describeProducer(LogLine logLine, Properties defaults, Properties overrides) {
+    mustExist(logLine, "Log line cannot be null");
+    mustExist(defaults, "Defaults cannot be null");
+    mustExist(overrides, "Overrides cannot be null");
     logLine.println("Producer properties:");
     PropsFormat.printProps(logLine, 
                            mergeProducerProps(defaults, overrides),
@@ -47,16 +55,23 @@ public final class KafkaCluster<K, V> implements Kafka<K, V> {
   }
 
   private Properties mergeConsumerProps(Properties defaults, Properties overrides) {
+    mustExist(defaults, "Defaults cannot be null");
+    mustExist(overrides, "Overrides cannot be null");
     return Props.merge(defaults, config.getConsumerCombinedProps(), overrides);
   }
 
   @Override
   public KafkaConsumer<K, V> getConsumer(Properties defaults, Properties overrides) {
+    mustExist(defaults, "Defaults cannot be null");
+    mustExist(overrides, "Overrides cannot be null");
     return new KafkaConsumer<>(mergeConsumerProps(defaults, overrides));
   }
 
   @Override
   public void describeConsumer(LogLine logLine, Properties defaults, Properties overrides) {
+    mustExist(logLine, "Log line cannot be null");
+    mustExist(defaults, "Defaults cannot be null");
+    mustExist(overrides, "Overrides cannot be null");
     logLine.println("Consumer properties:");
     PropsFormat.printProps(logLine, 
                            mergeConsumerProps(defaults, overrides),

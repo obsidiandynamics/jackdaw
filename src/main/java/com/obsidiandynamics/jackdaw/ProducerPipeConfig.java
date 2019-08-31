@@ -1,5 +1,7 @@
 package com.obsidiandynamics.jackdaw;
 
+import static com.obsidiandynamics.func.Functions.*;
+
 import com.obsidiandynamics.yconf.*;
 
 @Y
@@ -34,6 +36,10 @@ public final class ProducerPipeConfig {
   public ProducerPipeConfig withSendAttempts(int sendAttempts) {
     setSendAttempts(sendAttempts);
     return this;
+  }
+
+  public void validate() {
+    mustBeGreater(sendAttempts, 0, illegalArgument("Send attempts must be greater or equal to 1"));
   }
   
   @Override

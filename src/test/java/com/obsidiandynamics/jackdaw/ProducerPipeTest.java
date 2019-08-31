@@ -127,7 +127,7 @@ public final class ProducerPipeTest {
       return null;
     });
     final ExceptionHandler eh = mock(ExceptionHandler.class);
-    pipe = new ProducerPipe<>(new ProducerPipeConfig().withAsync(true), producer, null, eh);
+    pipe = new ProducerPipe<>(new ProducerPipeConfig().withAsync(true), producer, "producer", eh);
     final ProducerRecord<String, String> rec = new ProducerRecord<>("topic", "value");
     final Callback callback = mock(Callback.class);
     
