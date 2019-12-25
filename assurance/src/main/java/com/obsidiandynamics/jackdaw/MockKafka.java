@@ -16,6 +16,7 @@ import com.obsidiandynamics.func.*;
 import com.obsidiandynamics.props.*;
 import com.obsidiandynamics.yconf.*;
 import com.obsidiandynamics.zerolog.*;
+import org.apache.kafka.common.record.TimestampType;
 
 @Y
 public final class MockKafka<K, V> implements Kafka<K, V> {
@@ -142,8 +143,11 @@ public final class MockKafka<K, V> implements Kafka<K, V> {
       throw new InvalidPartitionException(m);
     }
     
-    final ConsumerRecord<K, V> cr = 
-        new ConsumerRecord<>(r.topic(), partition, offset, r.key(), r.value());
+    final ConsumerRecord<K, V> cr =
+        new ConsumerRecord<>(r.topic(), partition, offset,
+                ConsumerRecord.NO_TIMESTAMP, TimestampType.NO_TIMESTAMP_TYPE,
+                ConsumerRecord.NO_TIMESTAMP, ConsumerRecord.NULL_CHECKSUM, ConsumerRecord.NULL_CHECKSUM,
+                r.key(), r.value(), r.headers());
     
     final TopicPartition part = new TopicPartition(r.topic(), partition);
     synchronized (lock) {
