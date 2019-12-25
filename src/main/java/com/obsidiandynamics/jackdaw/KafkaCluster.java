@@ -12,6 +12,8 @@ import org.apache.kafka.clients.producer.*;
 import com.obsidiandynamics.func.*;
 import com.obsidiandynamics.props.*;
 import com.obsidiandynamics.yconf.*;
+import org.apache.kafka.common.serialization.Deserializer;
+import org.apache.kafka.common.serialization.Serializer;
 
 @Y
 public final class KafkaCluster<K, V> implements Kafka<K, V> {
@@ -40,6 +42,14 @@ public final class KafkaCluster<K, V> implements Kafka<K, V> {
   }
 
   @Override
+  public Producer<K, V> getProducer(Properties overrides, Serializer<K> keySerializer, Serializer<V> valueSerializer) {
+    mustExist(overrides, "Overrides cannot be null");
+    mustExist(keySerializer, "keySerializer cannot be null");
+    mustExist(valueSerializer, "valueSerializer cannot be null");
+    return new KafkaProducer<>(mergeProducerProps(new Properties(), overrides), keySerializer, valueSerializer);
+  }
+
+  @Override
   public void describeProducer(LogLine logLine, Properties defaults, Properties overrides) {
     mustExist(logLine, "Log line cannot be null");
     mustExist(defaults, "Defaults cannot be null");
@@ -50,6 +60,15 @@ public final class KafkaCluster<K, V> implements Kafka<K, V> {
                            s -> (overrides.containsKey(s) ? "* " : "- ") + rightPad(25).apply(s),
                            prefix(" "), 
                            any());
+  }
+
+  @Override
+  public Consumer<K, V> getConsumer(Properties overrides, Deserializer<K> keyDeserializer,
+                                    Deserializer<V> valueDeserializer) {
+    mustExist(overrides, "Overrides cannot be null");
+    mustExist(keyDeserializer, "keyDeserializer cannot be null");
+    mustExist(valueDeserializer, "valueDeserializer cannot be null");
+    return new KafkaConsumer<>(mergeConsumerProps(new Properties(), overrides), keyDeserializer, valueDeserializer);
   }
 
   private Properties mergeConsumerProps(Properties defaults, Properties overrides) {

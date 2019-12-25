@@ -17,6 +17,8 @@ import com.obsidiandynamics.props.*;
 import com.obsidiandynamics.yconf.*;
 import com.obsidiandynamics.zerolog.*;
 import org.apache.kafka.common.record.TimestampType;
+import org.apache.kafka.common.serialization.Deserializer;
+import org.apache.kafka.common.serialization.Serializer;
 
 @Y
 public final class MockKafka<K, V> implements Kafka<K, V> {
@@ -85,11 +87,17 @@ public final class MockKafka<K, V> implements Kafka<K, V> {
   @Override
   public FallibleMockProducer<K, V> getProducer(Properties defaults, Properties overrides) {
     final Properties combined = Props.merge(defaults, overrides);
+    final String keySerializer = combined.getProperty("key.serializer");
+    final String valueSerializer = combined.getProperty("value.serializer");
+
+    return getProducer(combined, instantiate(keySerializer), instantiate(valueSerializer));
+  }
+
+  @Override
+  public FallibleMockProducer<K, V> getProducer(Properties overrides, Serializer<K> keySerializer, Serializer<V> valueSerializer) {
     synchronized (lock) {
       if (producer == null) {
-        final String keySerializer = combined.getProperty("key.serializer");
-        final String valueSerializer = combined.getProperty("value.serializer");
-        producer = new FallibleMockProducer<K, V>(true, instantiate(keySerializer), instantiate(valueSerializer)) {
+        producer = new FallibleMockProducer<K, V>(true, keySerializer, valueSerializer) {
           {
             this.sendCallbackExceptionGenerator = MockKafka.this.sendCallbackExceptionGenerator;
             this.sendRuntimeExceptionGenerator = MockKafka.this.sendRuntimeExceptionGenerator;
@@ -183,6 +191,11 @@ public final class MockKafka<K, V> implements Kafka<K, V> {
   @Override
   public FallibleMockConsumer<K, V> getConsumer(Properties overrides) {
     return getConsumer(new Properties(), overrides);
+  }
+
+  @Override
+  public FallibleMockConsumer<K, V> getConsumer(Properties overrides, Deserializer<K> keyDeserializer, Deserializer<V> valueDeserializer) {
+    return getConsumer(overrides);
   }
 
   @Override
