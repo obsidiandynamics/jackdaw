@@ -116,7 +116,7 @@ public final class MockKafka<K, V> implements Kafka<K, V> {
             } else {
               final Future<RecordMetadata> f = super.send(r, (metadata, exception) -> {
                 if (callback != null) callback.onCompletion(metadata, exception);
-                ConsumerRecord<K, V> consumerRecord = recordMapper.apply(r, metadata);
+                final ConsumerRecord<K, V> consumerRecord = recordMapper.apply(r, metadata);
                 enqueue(consumerRecord);
               });
               return f;
