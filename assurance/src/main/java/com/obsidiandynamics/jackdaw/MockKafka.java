@@ -20,42 +20,44 @@ import com.obsidiandynamics.zerolog.*;
 @Y
 public final class MockKafka<K, V> implements Kafka<K, V> {
   private final Zlg zlg = Zlg.forDeclaringClass().get();
-  
+
   private final int maxPartitions;
-  
+
   private final int maxHistory;
-  
+
   private FallibleMockProducer<K, V> producer;
-  
+
   private final List<FallibleMockConsumer<K, V>> consumers = new CopyOnWriteArrayList<>();
-  
+
   private List<ConsumerRecord<K, V>> backlog = new CopyOnWriteArrayList<>();
-  
+
   private final Object lock = new Object();
-  
+
   /** Tracks presence of group members. */
   private final Set<String> groups = new CopyOnWriteArraySet<>();
-  
+
   private ExceptionGenerator<ProducerRecord<K, V>, Exception> sendCallbackExceptionGenerator = ExceptionGenerator.never();
   private ExceptionGenerator<ProducerRecord<K, V>, RuntimeException> sendRuntimeExceptionGenerator = ExceptionGenerator.never();
   private ExceptionGenerator<Map<TopicPartition, OffsetAndMetadata>, Exception> commitExceptionGenerator = ExceptionGenerator.never();
-  
+
   private Supplier<AdminClient> adminClientFactory = PassiveAdminClient::getInstance;
-  
+  private BiFunction<ProducerRecord<K, V>, RecordMetadata, ConsumerRecord<K, V>> recordMapper;
+
   public MockKafka() {
     this(10, 100_000);
   }
-  
+
   public MockKafka(int maxPartitions, int maxHistory) {
     this.maxPartitions = maxPartitions;
     this.maxHistory = maxHistory;
+    this.recordMapper = this::defaultRecordMapping;
   }
-  
+
   public MockKafka<K, V> withSendCallbackExceptionGenerator(ExceptionGenerator<ProducerRecord<K, V>, Exception> sendCallbackExceptionGenerator) {
     this.sendCallbackExceptionGenerator = sendCallbackExceptionGenerator;
     return this;
   }
-  
+
   public MockKafka<K, V> withSendRuntimeExceptionGenerator(ExceptionGenerator<ProducerRecord<K, V>, RuntimeException> sendRuntimeExceptionGenerator) {
     this.sendRuntimeExceptionGenerator = sendRuntimeExceptionGenerator;
     return this;
@@ -65,9 +67,14 @@ public final class MockKafka<K, V> implements Kafka<K, V> {
     this.commitExceptionGenerator = commitExceptionGenerator;
     return this;
   }
-  
+
   public MockKafka<K, V> withAdminClientFactory(Supplier<AdminClient> adminClientFactory) {
     this.adminClientFactory = adminClientFactory;
+    return this;
+  }
+
+  public MockKafka<K, V> withRecordMapper(BiFunction<ProducerRecord<K, V>, RecordMetadata, ConsumerRecord<K, V>> recordMapper) {
+    this.recordMapper = recordMapper;
     return this;
   }
 
@@ -75,7 +82,7 @@ public final class MockKafka<K, V> implements Kafka<K, V> {
   public void describeProducer(LogLine logLine, Properties defaults, Properties overrides) {
     logLine.println("Mock producer");
   }
-  
+
   @Override
   public FallibleMockProducer<K, V> getProducer(Properties overrides) {
     return getProducer(new Properties(), overrides);
@@ -93,13 +100,13 @@ public final class MockKafka<K, V> implements Kafka<K, V> {
             this.sendCallbackExceptionGenerator = MockKafka.this.sendCallbackExceptionGenerator;
             this.sendRuntimeExceptionGenerator = MockKafka.this.sendRuntimeExceptionGenerator;
           }
-          
-          @Override 
+
+          @Override
           public Future<RecordMetadata> send(ProducerRecord<K, V> r, Callback callback) { // lgtm [java/non-sync-override]
             if (closed.get()) throw new IllegalStateException("Cannot send over a closed producer");
             final RuntimeException generatedRuntime = sendRuntimeExceptionGenerator.inspect(r);
             if (generatedRuntime != null) throw generatedRuntime;
-            
+
             final Exception generatedCallback = sendCallbackExceptionGenerator.inspect(r);
             if (generatedCallback != null) {
               if (callback != null) callback.onCompletion(null, generatedCallback);
@@ -109,16 +116,16 @@ public final class MockKafka<K, V> implements Kafka<K, V> {
             } else {
               final Future<RecordMetadata> f = super.send(r, (metadata, exception) -> {
                 if (callback != null) callback.onCompletion(metadata, exception);
-                final int partition = r.partition() != null ? r.partition() : metadata.partition();
-                enqueue(r, partition, metadata.offset());
+                ConsumerRecord<K, V> consumerRecord = recordMapper.apply(r, metadata);
+                enqueue(consumerRecord);
               });
               return f;
             }
           }
-          
+
           final AtomicBoolean closed = new AtomicBoolean();
-          
-          @Override 
+
+          @Override
           public void close(Duration duration) {
             if (closed.compareAndSet(false, true)) {
               super.close();
@@ -129,23 +136,26 @@ public final class MockKafka<K, V> implements Kafka<K, V> {
     }
     return producer;
   }
-  
+
+  private ConsumerRecord<K, V> defaultRecordMapping(ProducerRecord<K, V> record, RecordMetadata metadata) {
+    final int partition = record.partition() != null ? record.partition() : metadata.partition();
+    return new ConsumerRecord<>(record.topic(), partition, metadata.offset(), record.key(), record.value());
+  }
+
   static final class InvalidPartitionException extends IllegalArgumentException {
     private static final long serialVersionUID = 1L;
     InvalidPartitionException(String m) { super(m); }
   }
-  
-  private void enqueue(ProducerRecord<K, V> r, int partition, long offset) {
+
+  private void enqueue(ConsumerRecord<K, V> cr) {
+    int partition = cr.partition();
     if (partition >= maxPartitions) {
       final String m = String.format("Cannot send message on partition %d, "
           + "a maximum of %d partitions are supported", partition, maxPartitions);
       throw new InvalidPartitionException(m);
     }
-    
-    final ConsumerRecord<K, V> cr = 
-        new ConsumerRecord<>(r.topic(), partition, offset, r.key(), r.value());
-    
-    final TopicPartition part = new TopicPartition(r.topic(), partition);
+
+    final TopicPartition part = new TopicPartition(cr.topic(), partition);
     synchronized (lock) {
       backlog.add(cr);
       for (FallibleMockConsumer<K, V> consumer : consumers) {
@@ -157,14 +167,14 @@ public final class MockKafka<K, V> implements Kafka<K, V> {
           }
         }
       }
-      
+
       if (producer.history().size() > maxHistory) {
         producer.clear();
         backlog = backlog.subList(backlog.size() - maxHistory, backlog.size());
       }
     }
   }
-  
+
   public List<ConsumerRecord<K, V>> getBacklog() {
     synchronized (lock) {
       return Collections.unmodifiableList(new ArrayList<>(backlog));
@@ -175,7 +185,7 @@ public final class MockKafka<K, V> implements Kafka<K, V> {
   public void describeConsumer(LogLine logLine, Properties defaults, Properties overrides) {
     logLine.accept("Mock consumer");
   }
-  
+
   @Override
   public FallibleMockConsumer<K, V> getConsumer(Properties overrides) {
     return getConsumer(new Properties(), overrides);
@@ -192,17 +202,17 @@ public final class MockKafka<K, V> implements Kafka<K, V> {
       return createDetachedConsumer();
     }
   }
-  
+
   private FallibleMockConsumer<K, V> createAttachedConsumer() {
     return createConsumer(true);
   }
-  
+
   private FallibleMockConsumer<K, V> createDetachedConsumer() {
     return createConsumer(false);
   }
-  
+
   private static final int MIN_POLL_WAIT = 1_000;
-  
+
   private FallibleMockConsumer<K, V> createConsumer(boolean attached) {
     final Object lock;
     final List<FallibleMockConsumer<K, V>> consumers;
@@ -213,13 +223,13 @@ public final class MockKafka<K, V> implements Kafka<K, V> {
       lock = new Object();
       consumers = new ArrayList<>(1);
     }
-    
+
     final FallibleMockConsumer<K, V> consumer = new FallibleMockConsumer<K, V>(OffsetResetStrategy.EARLIEST) {
       {
         this.commitExceptionGenerator = MockKafka.this.commitExceptionGenerator;
       }
-      
-      @Override 
+
+      @Override
       public void commitAsync(Map<TopicPartition, OffsetAndMetadata> offsets, OffsetCommitCallback callback) { // lgtm [java/non-sync-override]
         final Exception generated = commitExceptionGenerator.inspect(offsets);
         if (generated != null) {
@@ -228,8 +238,8 @@ public final class MockKafka<K, V> implements Kafka<K, V> {
           super.commitAsync(offsets, callback);
         }
       }
-      
-      @Override 
+
+      @Override
       public void subscribe(Collection<String> topics, ConsumerRebalanceListener rebalanceListener) { // lgtm [java/non-sync-override]
         if (attached) {
           rebalanceListener.onPartitionsRevoked(Collections.emptySet());
@@ -240,12 +250,12 @@ public final class MockKafka<K, V> implements Kafka<K, V> {
               final List<TopicPartition> partitions = new ArrayList<>(maxPartitions);
               final Map<TopicPartition, Long> offsetRecords = new HashMap<>(maxPartitions, 1f);
               final List<ConsumerRecord<K, V>> records = new ArrayList<>();
-              
+
               for (int partIdx = 0; partIdx < maxPartitions; partIdx++) {
                 final TopicPartition part = new TopicPartition(topic, partIdx);
                 partitions.add(part);
                 offsetRecords.put(part, 0L);
-                
+
                 for (ConsumerRecord<K, V> cr : backlog) {
                   if (cr.topic().equals(topic) && cr.partition() == partIdx) {
                     records.add(cr);
@@ -253,7 +263,7 @@ public final class MockKafka<K, V> implements Kafka<K, V> {
                 }
               }
               subscribedPartitions.addAll(partitions);
-  
+
               assign(partitions);
               updateBeginningOffsets(offsetRecords);
               for (ConsumerRecord<K, V> cr : records) {
@@ -264,35 +274,35 @@ public final class MockKafka<K, V> implements Kafka<K, V> {
           rebalanceListener.onPartitionsAssigned(subscribedPartitions);
         }
       }
-      
-      @Override 
+
+      @Override
       public void subscribe(Collection<String> topics) { // lgtm [java/non-sync-override]
         subscribe(topics, new NoOpConsumerRebalanceListener());
       }
-      
-      @Override 
+
+      @Override
       public List<PartitionInfo> partitionsFor(String topic) { // lgtm [java/non-sync-override]
         final List<PartitionInfo> newInfos = new ArrayList<>(maxPartitions);
         final Map<TopicPartition, Long> offsets = new HashMap<>(maxPartitions, 1f);
-        
+
         for (int i = 0; i < maxPartitions; i++) {
           newInfos.add(new PartitionInfo(topic, i, null, new Node[0], new Node[0]));
           offsets.put(new TopicPartition(topic, i), 0L);
         }
-        
+
         synchronized (lock) {
           updateBeginningOffsets(offsets);
           updateEndOffsets(offsets);
         }
         return newInfos;
       }
-      
-      @Override 
+
+      @Override
       public ConsumerRecords<K, V> poll(Duration timeout) { // lgtm [java/non-sync-override]
         final long timeoutMillis = timeout.toMillis();
         // super.poll() disregards the timeout, resulting in a spin loop in the absence of records
         // and resource exhaustion on single-CPU machines
-        
+
         final long endTime = System.currentTimeMillis() + timeoutMillis;
         for (;;) {
           final ConsumerRecords<K, V> recs = super.poll(timeout);
@@ -319,8 +329,8 @@ public final class MockKafka<K, V> implements Kafka<K, V> {
           }
         }
       }
-      
-      @Override 
+
+      @Override
       public void close() { // lgtm [java/non-sync-override]
         synchronized (lock) {
           consumers.remove(this);
@@ -328,7 +338,7 @@ public final class MockKafka<K, V> implements Kafka<K, V> {
         super.close();
       }
     };
-    
+
     synchronized (lock) {
       consumers.add(consumer);
     }
@@ -339,7 +349,7 @@ public final class MockKafka<K, V> implements Kafka<K, V> {
   public AdminClient getAdminClient() {
     return adminClientFactory.get();
   }
-  
+
   private static <T> T instantiate(String className) {
     return Exceptions.wrap(() -> Classes.cast(Class.forName(className).getDeclaredConstructor().newInstance()),
                            RuntimeException::new);
