@@ -41,7 +41,8 @@ public final class MockKafka<K, V> implements Kafka<K, V> {
   private ExceptionGenerator<Map<TopicPartition, OffsetAndMetadata>, Exception> commitExceptionGenerator = ExceptionGenerator.never();
   
   private Supplier<AdminClient> adminClientFactory = PassiveAdminClient::getInstance;
-  
+  private BiFunction<ProducerRecord<K, V>, RecordMetadata, ConsumerRecord<K, V>> recordMapper;
+
   public MockKafka() {
     this(10, 100_000);
   }
@@ -49,6 +50,7 @@ public final class MockKafka<K, V> implements Kafka<K, V> {
   public MockKafka(int maxPartitions, int maxHistory) {
     this.maxPartitions = maxPartitions;
     this.maxHistory = maxHistory;
+    this.recordMapper = this::defaultRecordMapping;
   }
   
   public MockKafka<K, V> withSendCallbackExceptionGenerator(ExceptionGenerator<ProducerRecord<K, V>, Exception> sendCallbackExceptionGenerator) {
@@ -68,6 +70,11 @@ public final class MockKafka<K, V> implements Kafka<K, V> {
   
   public MockKafka<K, V> withAdminClientFactory(Supplier<AdminClient> adminClientFactory) {
     this.adminClientFactory = adminClientFactory;
+    return this;
+  }
+
+  public MockKafka<K, V> withRecordMapper(BiFunction<ProducerRecord<K, V>, RecordMetadata, ConsumerRecord<K, V>> recordMapper) {
+    this.recordMapper = recordMapper;
     return this;
   }
 
@@ -109,8 +116,8 @@ public final class MockKafka<K, V> implements Kafka<K, V> {
             } else {
               final Future<RecordMetadata> f = super.send(r, (metadata, exception) -> {
                 if (callback != null) callback.onCompletion(metadata, exception);
-                final int partition = r.partition() != null ? r.partition() : metadata.partition();
-                enqueue(r, partition, metadata.offset());
+                final ConsumerRecord<K, V> consumerRecord = recordMapper.apply(r, metadata);
+                enqueue(consumerRecord);
               });
               return f;
             }
@@ -129,23 +136,26 @@ public final class MockKafka<K, V> implements Kafka<K, V> {
     }
     return producer;
   }
-  
+
+  private ConsumerRecord<K, V> defaultRecordMapping(ProducerRecord<K, V> record, RecordMetadata metadata) {
+    final int partition = record.partition() != null ? record.partition() : metadata.partition();
+    return new ConsumerRecord<>(record.topic(), partition, metadata.offset(), record.key(), record.value());
+  }
+
   static final class InvalidPartitionException extends IllegalArgumentException {
     private static final long serialVersionUID = 1L;
     InvalidPartitionException(String m) { super(m); }
   }
-  
-  private void enqueue(ProducerRecord<K, V> r, int partition, long offset) {
+
+  private void enqueue(ConsumerRecord<K, V> cr) {
+    int partition = cr.partition();
     if (partition >= maxPartitions) {
       final String m = String.format("Cannot send message on partition %d, "
           + "a maximum of %d partitions are supported", partition, maxPartitions);
       throw new InvalidPartitionException(m);
     }
-    
-    final ConsumerRecord<K, V> cr = 
-        new ConsumerRecord<>(r.topic(), partition, offset, r.key(), r.value());
-    
-    final TopicPartition part = new TopicPartition(r.topic(), partition);
+
+    final TopicPartition part = new TopicPartition(cr.topic(), partition);
     synchronized (lock) {
       backlog.add(cr);
       for (FallibleMockConsumer<K, V> consumer : consumers) {
