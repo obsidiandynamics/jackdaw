@@ -11,6 +11,7 @@ public final class BarebonesProducerSample {
     producerProps.setProperty("bootstrap.servers", "localhost:9092");
     producerProps.setProperty("key.serializer", StringSerializer.class.getName());
     producerProps.setProperty("value.serializer", StringSerializer.class.getName());
+    producerProps.setProperty("max.in.flight.requests.per.connection", String.valueOf(1));
     
     try (Producer<String, String> producer = new KafkaProducer<>(producerProps)) {
       while (true) {

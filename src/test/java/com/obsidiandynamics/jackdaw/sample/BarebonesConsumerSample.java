@@ -22,8 +22,8 @@ public final class BarebonesConsumerSample {
         final ConsumerRecords<String, String> records = consumer.poll(Duration.ofMillis(100));
         for (ConsumerRecord<String, String> record : records) {
           System.out.format("Got record with value %s%n", record.value());
-          consumer.commitAsync();
         }
+        consumer.commitAsync();
       }
     }
   }
