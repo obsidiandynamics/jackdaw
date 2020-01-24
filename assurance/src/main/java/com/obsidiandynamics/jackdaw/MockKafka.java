@@ -22,7 +22,6 @@ import org.apache.kafka.common.record.TimestampType;
 
 @Y
 public final class MockKafka<K, V> implements Kafka<K, V> {
-  public static final RecordHeaders EMPTY_RECORD_HEADERS = new RecordHeaders(Collections.emptyList());
   private final Zlg zlg = Zlg.forDeclaringClass().get();
   
   private final int maxPartitions;
