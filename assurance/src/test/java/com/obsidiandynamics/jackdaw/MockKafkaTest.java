@@ -78,11 +78,27 @@ public final class MockKafkaTest {
   @Test
   public void testDefaultRecordMapping() {
     final MockKafka<Object, Object> mockKafka = new MockKafka<>();
-    // Null headers covered in other tests that don't specify any
     final RecordHeaders recordHeaders = new RecordHeaders(Collections.singleton(
                     new RecordHeader("headerKey", "headerValue".getBytes(StandardCharsets.UTF_8))));
+    final RecordMetadata recordMetadata = new RecordMetadata(new TopicPartition("topic", 0),
+            0, 0, 0, -1L, -1, -1);
     final ProducerRecord<Object, Object> producerRecord =
             new ProducerRecord<>("topic", 0, "key", "value", recordHeaders);
+
+    final ConsumerRecord<Object, Object> consumerRecord = mockKafka.defaultRecordMapping(producerRecord, recordMetadata);
+
+    assertEquals(producerRecord.topic(), consumerRecord.topic());
+    assertEquals(producerRecord.partition().intValue(), consumerRecord.partition());
+    assertEquals(producerRecord.key(), consumerRecord.key());
+    assertEquals(producerRecord.value(), consumerRecord.value());
+    assertEquals(producerRecord.headers(), consumerRecord.headers());
+  }
+
+  @Test
+  public void testDefaultRecordMappingNoHeaders() {
+    final MockKafka<Object, Object> mockKafka = new MockKafka<>();
+    final ProducerRecord<Object, Object> producerRecord =
+            new ProducerRecord<>("topic", 0, "key", "value");
     final RecordMetadata recordMetadata = new RecordMetadata(new TopicPartition("topic", 0),
             0, 0, 0, -1L, -1, -1);
 
@@ -92,7 +108,7 @@ public final class MockKafkaTest {
     assertEquals(producerRecord.partition().intValue(), consumerRecord.partition());
     assertEquals(producerRecord.key(), consumerRecord.key());
     assertEquals(producerRecord.value(), consumerRecord.value());
-    assertEquals(producerRecord.headers(), consumerRecord.headers());
+    assertEquals(new RecordHeaders(Collections.emptyList()), consumerRecord.headers());
   }
 
   private static final class TestConsumer<K, V> implements Terminable {
