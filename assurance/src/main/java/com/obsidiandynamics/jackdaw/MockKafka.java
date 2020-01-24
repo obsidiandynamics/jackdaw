@@ -16,6 +16,9 @@ import com.obsidiandynamics.func.*;
 import com.obsidiandynamics.props.*;
 import com.obsidiandynamics.yconf.*;
 import com.obsidiandynamics.zerolog.*;
+import org.apache.kafka.common.header.Headers;
+import org.apache.kafka.common.header.internals.RecordHeaders;
+import org.apache.kafka.common.record.TimestampType;
 
 @Y
 public final class MockKafka<K, V> implements Kafka<K, V> {
@@ -41,7 +44,8 @@ public final class MockKafka<K, V> implements Kafka<K, V> {
   private ExceptionGenerator<Map<TopicPartition, OffsetAndMetadata>, Exception> commitExceptionGenerator = ExceptionGenerator.never();
   
   private Supplier<AdminClient> adminClientFactory = PassiveAdminClient::getInstance;
-  
+  private BiFunction<ProducerRecord<K, V>, RecordMetadata, ConsumerRecord<K, V>> recordMapper;
+
   public MockKafka() {
     this(10, 100_000);
   }
@@ -49,6 +53,7 @@ public final class MockKafka<K, V> implements Kafka<K, V> {
   public MockKafka(int maxPartitions, int maxHistory) {
     this.maxPartitions = maxPartitions;
     this.maxHistory = maxHistory;
+    this.recordMapper = this::defaultRecordMapping;
   }
   
   public MockKafka<K, V> withSendCallbackExceptionGenerator(ExceptionGenerator<ProducerRecord<K, V>, Exception> sendCallbackExceptionGenerator) {
@@ -70,6 +75,18 @@ public final class MockKafka<K, V> implements Kafka<K, V> {
     this.adminClientFactory = adminClientFactory;
     return this;
   }
+
+  /**
+   *
+   * @param recordMapper mapping function
+   * @return ConsumerRecord mapped from ProducerRecord and RecordMetadata
+   *
+   * The default implementation maps the following: topic, partition, offset, timestamp (no type), key and value.
+   */
+    public MockKafka<K, V> withRecordMapper(BiFunction<ProducerRecord<K, V>, RecordMetadata, ConsumerRecord<K, V>> recordMapper) {
+        this.recordMapper = recordMapper;
+        return this;
+    }
 
   @Override
   public void describeProducer(LogLine logLine, Properties defaults, Properties overrides) {
@@ -109,8 +126,8 @@ public final class MockKafka<K, V> implements Kafka<K, V> {
             } else {
               final Future<RecordMetadata> f = super.send(r, (metadata, exception) -> {
                 if (callback != null) callback.onCompletion(metadata, exception);
-                final int partition = r.partition() != null ? r.partition() : metadata.partition();
-                enqueue(r, partition, metadata.offset());
+                final ConsumerRecord<K, V> consumerRecord = recordMapper.apply(r, metadata);
+                enqueue(consumerRecord);
               });
               return f;
             }
@@ -129,23 +146,28 @@ public final class MockKafka<K, V> implements Kafka<K, V> {
     }
     return producer;
   }
-  
+
+  ConsumerRecord<K, V> defaultRecordMapping(ProducerRecord<K, V> record, RecordMetadata metadata) {
+    final int partition = record.partition() != null ? record.partition() : metadata.partition();
+    return new ConsumerRecord<>(record.topic(), partition, metadata.offset(), metadata.timestamp(),
+            TimestampType.NO_TIMESTAMP_TYPE, -1L, -1, -1,
+            record.key(), record.value(), record.headers());
+  }
+
   static final class InvalidPartitionException extends IllegalArgumentException {
     private static final long serialVersionUID = 1L;
     InvalidPartitionException(String m) { super(m); }
   }
-  
-  private void enqueue(ProducerRecord<K, V> r, int partition, long offset) {
+
+  private void enqueue(ConsumerRecord<K, V> cr) {
+    int partition = cr.partition();
     if (partition >= maxPartitions) {
       final String m = String.format("Cannot send message on partition %d, "
           + "a maximum of %d partitions are supported", partition, maxPartitions);
       throw new InvalidPartitionException(m);
     }
-    
-    final ConsumerRecord<K, V> cr = 
-        new ConsumerRecord<>(r.topic(), partition, offset, r.key(), r.value());
-    
-    final TopicPartition part = new TopicPartition(r.topic(), partition);
+
+    final TopicPartition part = new TopicPartition(cr.topic(), partition);
     synchronized (lock) {
       backlog.add(cr);
       for (FallibleMockConsumer<K, V> consumer : consumers) {
