@@ -17,10 +17,12 @@ import com.obsidiandynamics.props.*;
 import com.obsidiandynamics.yconf.*;
 import com.obsidiandynamics.zerolog.*;
 import org.apache.kafka.common.header.Headers;
+import org.apache.kafka.common.header.internals.RecordHeaders;
 import org.apache.kafka.common.record.TimestampType;
 
 @Y
 public final class MockKafka<K, V> implements Kafka<K, V> {
+  public static final RecordHeaders EMPTY_RECORD_HEADERS = new RecordHeaders(Collections.emptyList());
   private final Zlg zlg = Zlg.forDeclaringClass().get();
   
   private final int maxPartitions;
@@ -148,15 +150,9 @@ public final class MockKafka<K, V> implements Kafka<K, V> {
 
   ConsumerRecord<K, V> defaultRecordMapping(ProducerRecord<K, V> record, RecordMetadata metadata) {
     final int partition = record.partition() != null ? record.partition() : metadata.partition();
-
-    // headers are optional but not-nullable in ConsumerRecord constructor
-    final Headers headers = record.headers();
-    if (null == headers) {
-        return new ConsumerRecord<>(record.topic(), partition, metadata.offset(), record.key(), record.value());
-    }
     return new ConsumerRecord<>(record.topic(), partition, metadata.offset(), metadata.timestamp(),
             TimestampType.NO_TIMESTAMP_TYPE, -1L, -1, -1,
-            record.key(), record.value(), headers);
+            record.key(), record.value(), record.headers());
   }
 
   static final class InvalidPartitionException extends IllegalArgumentException {
