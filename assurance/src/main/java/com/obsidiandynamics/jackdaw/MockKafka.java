@@ -16,6 +16,8 @@ import com.obsidiandynamics.func.*;
 import com.obsidiandynamics.props.*;
 import com.obsidiandynamics.yconf.*;
 import com.obsidiandynamics.zerolog.*;
+import org.apache.kafka.common.header.Headers;
+import org.apache.kafka.common.record.TimestampType;
 
 @Y
 public final class MockKafka<K, V> implements Kafka<K, V> {
@@ -73,10 +75,17 @@ public final class MockKafka<K, V> implements Kafka<K, V> {
     return this;
   }
 
-  public MockKafka<K, V> withRecordMapper(BiFunction<ProducerRecord<K, V>, RecordMetadata, ConsumerRecord<K, V>> recordMapper) {
-    this.recordMapper = recordMapper;
-    return this;
-  }
+  /**
+   *
+   * @param recordMapper mapping function
+   * @return ConsumerRecord mapped from ProducerRecord and RecordMetadata
+   *
+   * The default implementation maps the following: topic, partition, offset, timestamp (no type), key and value.
+   */
+    public MockKafka<K, V> withRecordMapper(BiFunction<ProducerRecord<K, V>, RecordMetadata, ConsumerRecord<K, V>> recordMapper) {
+        this.recordMapper = recordMapper;
+        return this;
+    }
 
   @Override
   public void describeProducer(LogLine logLine, Properties defaults, Properties overrides) {
@@ -137,9 +146,17 @@ public final class MockKafka<K, V> implements Kafka<K, V> {
     return producer;
   }
 
-  private ConsumerRecord<K, V> defaultRecordMapping(ProducerRecord<K, V> record, RecordMetadata metadata) {
+  ConsumerRecord<K, V> defaultRecordMapping(ProducerRecord<K, V> record, RecordMetadata metadata) {
     final int partition = record.partition() != null ? record.partition() : metadata.partition();
-    return new ConsumerRecord<>(record.topic(), partition, metadata.offset(), record.key(), record.value());
+
+    // headers are optional but not-nullable in ConsumerRecord constructor
+    final Headers headers = record.headers();
+    if (null == headers) {
+        return new ConsumerRecord<>(record.topic(), partition, metadata.offset(), record.key(), record.value());
+    }
+    return new ConsumerRecord<>(record.topic(), partition, metadata.offset(), metadata.timestamp(),
+            TimestampType.NO_TIMESTAMP_TYPE, -1L, -1, -1,
+            record.key(), record.value(), headers);
   }
 
   static final class InvalidPartitionException extends IllegalArgumentException {
