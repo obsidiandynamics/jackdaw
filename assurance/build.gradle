@@ -1,80 +1,42 @@
 def packageName = "jackdaw-assurance"
-version = project(":").version
+def packageDescription = "Mocking components and test utilities for Jackdaw"
 
 dependencies {
-  compile project(":")
-  compile "com.obsidiandynamics.fulcrum:fulcrum-await:${fulcrumVersion}"
-  compile "com.obsidiandynamics.fulcrum:fulcrum-docker-compose:${fulcrumVersion}"
+  api project(":")
+  api "com.obsidiandynamics.fulcrum:fulcrum-await:${fulcrumVersion}"
+  api "com.obsidiandynamics.fulcrum:fulcrum-docker-compose:${fulcrumVersion}"
   
-  testCompile project(":").sourceSets.test.output
-}
-
-jar {
-  baseName packageName
-}
-
-task javadocJar(type: Jar, dependsOn: javadoc) {
-  baseName packageName
-  classifier = "javadoc"
-  from "$buildDir/docs/javadoc"
-}
- 
-task sourcesJar(type: Jar) {
-  baseName packageName
-  from sourceSets.main.allSource
-  classifier = "sources"
-}
- 
-artifacts {
-  archives jar
-  archives javadocJar
-  archives sourcesJar
+  testImplementation project(":").sourceSets.test.output
 }
 
 publishing {
   publications {
     mavenJava(MavenPublication) {
-      groupId project(":").group
-      artifactId packageName
-      version project(":").version
+      artifactId = packageName
       from components.java
-      artifact sourcesJar
-      artifact javadocJar
-    }
-  }
-  repositories {
-    maven {
-      url "${project(':').projectDir}/../repo"
-    }
-  }
-}
-
-def envUser = "BINTRAY_USER"
-def envKey = "BINTRAY_KEY"
-def packageDesc = "Mocking components and test utilities for Jackdaw"
-def repoName = "jackdaw"
-bintray {
-  user = System.getenv(envUser)
-  key = System.getenv(envKey)
-  publications = ["mavenJava"]
-  pkg {
-    repo = "${repoName}"
-    name = packageName
-    userOrg = "obsidiandynamics"
-    desc = packageDesc
-    websiteUrl = "https://github.com/obsidiandynamics/${repoName}"
-    licenses = ["BSD New"]
-    vcsUrl = "https://github.com/obsidiandynamics/${repoName}"
-    issueTrackerUrl = "https://github.com/obsidiandynamics/${repoName}/issues"
-    publicDownloadNumbers = true
-    githubRepo = "obsidiandynamics/${repoName}"
-    override = true
-    publish = true
-    version {
-      name = project(":").version
-      desc = packageDesc
-      released  = new Date()
-      vcsTag = project(":").version
+      pom {
+        name = packageName
+        description = packageDescription
+        url = 'https://github.com/obsidiandynamics/jackdaw'
+        licenses {
+          license {
+            name = 'BSD 3-Clause License'
+            url = 'https://opensource.org/licenses/BSD-3-Clause'
+          }
+        }
+        developers {
+          developer {
+            id = 'ekoutanov'
+            name = 'Emil Koutanov'
+            email = 'ekoutanov@gmail.com'
+          }
+        }
+        scm {
+          connection = 'scm:git:git://github.com/obsidiandynamics/jackdaw.git'
+          developerConnection = 'scm:git:ssh://github.com/obsidiandynamics/jackdaw.git'
+          url = 'https://github.com/obsidiandynamics/jackdaw'
+        }
+      }
     }
   }
 }
