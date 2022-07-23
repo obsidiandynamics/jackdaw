@@ -118,9 +118,9 @@ allprojects {
     classDirectories.from = files(sourceSets.main.output)
     executionData.from = files("$buildDir/jacoco/test.exec") + file("$buildDir/jacoco/integrationTest.exec")
     reports {
-      html.enabled true
-      xml.enabled true
-      csv.enabled false
+      html.required = true
+      xml.required = true
+      csv.required = false
     }
   }
 }
@@ -131,25 +131,16 @@ subprojects {
   }
 }
 
-task jacocoMerge(type: JacocoMerge) {
-  mustRunAfter = allprojects.test + allprojects.integrationTest
-  executionData = files(allprojects.jacocoTestReport.executionData)
-  doFirst {
-    executionData = files(files(allprojects.jacocoTestReport.executionData).findAll { it.exists() })
-  }
-}
-
 task jacocoRootReport(type: JacocoReport) {
-  dependsOn jacocoMerge
-  mustRunAfter = allprojects.test + allprojects.integrationTest
+  mustRunAfter = allprojects.test + allprojects.integrationTest + allprojects.javadoc
   additionalSourceDirs.from = files(allprojects.sourceSets.main.allSource.srcDirs)
   sourceDirectories.from = files(allprojects.sourceSets.main.allSource.srcDirs)
   classDirectories.from = files(allprojects.sourceSets.main.output)
-  executionData jacocoMerge.destinationFile
+  executionData.setFrom project.fileTree(dir: '.', include: ['**/build/jacoco/test.exec', '**/build/jacoco/integrationTest.exec'])
   reports {
-    html.enabled true
-    xml.enabled true
-    csv.enabled false
+    html.required = true
+    xml.required = true
+    csv.required = false
   }
   onlyIf = {
     true
