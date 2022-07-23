@@ -116,7 +116,7 @@ public final class MockKafkaTest {
 
     private void startup(WorkerThread t) {
       consumer = kafka.getConsumer(new Properties());
-      consumer.subscribe(Arrays.asList(TOPIC));
+      consumer.subscribe(Collections.singletonList(TOPIC));
     }
 
     private void run(WorkerThread t) {
@@ -165,7 +165,7 @@ public final class MockKafkaTest {
     terminables.addAll(consumers);
 
     try {
-      wait.untilTrue(() -> consumers.stream().filter(c -> c.received.totalSize() < expectedMessages).count() == 0);
+      wait.untilTrue(() -> consumers.stream().noneMatch(c -> c.received.totalSize() < expectedMessages));
     } finally {
       for (TestConsumer<Integer, Integer> consumer : consumers) {
         assertEquals(expectedMessages, consumer.received.totalSize());
@@ -303,10 +303,10 @@ public final class MockKafkaTest {
     consumerProps.put("group.id", "group");
 
     final Consumer<String, String> attached = kafka.getConsumer(consumerProps);
-    attached.subscribe(Arrays.asList("topic"), new NoOpConsumerRebalanceListener());
+    attached.subscribe(Collections.singletonList("topic"), new NoOpConsumerRebalanceListener());
 
     final Consumer<String, String> detached = kafka.getConsumer(consumerProps);
-    detached.subscribe(Arrays.asList("topic"));
+    detached.subscribe(Collections.singletonList("topic"));
 
     producer.send(new ProducerRecord<>("topic", 0, "key", "value"));
     wait.until(() -> assertEquals(1, attached.poll(Duration.ofMillis(1)).count()));
@@ -326,8 +326,8 @@ public final class MockKafkaTest {
     final Producer<String, String> producer = kafka.getProducer(props.producer());
 
     final Consumer<String, String> attached = kafka.getConsumer(props.consumer());
-    attached.subscribe(Arrays.asList("topic"));
-    attached.subscribe(Arrays.asList("topic"));
+    attached.subscribe(Collections.singletonList("topic"));
+    attached.subscribe(Collections.singletonList("topic"));
 
     producer.send(new ProducerRecord<>("topic", 0, "key", "value"));
     wait.until(() -> assertEquals(1, attached.poll(Duration.ofMillis(1)).count()));
@@ -346,7 +346,7 @@ public final class MockKafkaTest {
 
 
     final Consumer<String, String> consumer = kafka.getConsumer(props.consumer());
-    consumer.subscribe(Arrays.asList("different"));
+    consumer.subscribe(Collections.singletonList("different"));
     producer.send(new ProducerRecord<>("topic", 0, "key", "value"));
     assertEquals(0, consumer.poll(Duration.ofMillis(1)).count());
   }
@@ -361,7 +361,7 @@ public final class MockKafkaTest {
 
 
     final Consumer<String, String> consumer = kafka.getConsumer(props.consumer());
-    consumer.subscribe(Arrays.asList("different"));
+    consumer.subscribe(Collections.singletonList("different"));
     Thread.currentThread().interrupt();
     try {
       assertEquals(0, consumer.poll(Duration.ofMillis(10_000)).count());
@@ -384,7 +384,7 @@ public final class MockKafkaTest {
     producer.send(new ProducerRecord<>("topic", 0, "key", "value"));
 
     final Consumer<String, String> consumer = kafka.getConsumer(props.consumer());
-    consumer.subscribe(Arrays.asList("different"));
+    consumer.subscribe(Collections.singletonList("different"));
     assertEquals(0, consumer.poll(Duration.ofMillis(1)).count());
   }
 

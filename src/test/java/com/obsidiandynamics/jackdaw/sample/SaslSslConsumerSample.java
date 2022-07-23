@@ -17,7 +17,7 @@ public final class SaslSslConsumerSample {
   
   private static final String BOOTSTRAP_SERVERS = "localhost:9093";
   
-  private static Kafka<String, String> kafka = new KafkaCluster<>(new KafkaClusterConfig()
+  private static final Kafka<String, String> kafka = new KafkaCluster<>(new KafkaClusterConfig()
       .withBootstrapServers(BOOTSTRAP_SERVERS)
       .withCommonProps(new PropsBuilder()
                        .with("security.protocol", "SASL_SSL")
@@ -67,7 +67,7 @@ public final class SaslSslConsumerSample {
           zlg.i("listener: assigned %s", z -> z.arg(partitions));
         }
       };
-      consumer.subscribe(Arrays.asList(topic), rebalanceListener);
+      consumer.subscribe(Collections.singletonList(topic), rebalanceListener);
       for (;;) {
         zlg.i("polling...");
         final ConsumerRecords<String, String> records = consumer.poll(Duration.ofMillis(100));

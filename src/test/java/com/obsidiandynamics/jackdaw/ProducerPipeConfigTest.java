@@ -28,8 +28,8 @@ public final class ProducerPipeConfigTest {
         .fromStream(ProducerPipeConfigTest.class.getClassLoader().getResourceAsStream("producerpipe.conf"))
         .map(ProducerPipeConfig.class);
     config.validate();
-    
-    assertEquals(true, config.isAsync());
+
+    assertTrue(config.isAsync());
     Assertions.assertToStringOverride(config);
   }
   

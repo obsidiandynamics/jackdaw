@@ -17,7 +17,7 @@ public final class ConsumerSample {
   
   private static final String BOOTSTRAP_SERVERS = "localhost:9092";
   
-  private static Kafka<String, String> kafka = new KafkaCluster<>(new KafkaClusterConfig().withBootstrapServers(BOOTSTRAP_SERVERS));
+  private static final Kafka<String, String> kafka = new KafkaCluster<>(new KafkaClusterConfig().withBootstrapServers(BOOTSTRAP_SERVERS));
   
   public static void main(String[] args) {
     final boolean autoCommit = false;
@@ -54,7 +54,7 @@ public final class ConsumerSample {
           zlg.i("listener: assigned %s", z -> z.arg(partitions));
         }
       };
-      consumer.subscribe(Arrays.asList("test"), rebalanceListener);
+      consumer.subscribe(Collections.singletonList("test"), rebalanceListener);
       for (;;) {
         zlg.i("polling...");
         final ConsumerRecords<String, String> records = consumer.poll(Duration.ofMillis(100));

@@ -18,7 +18,7 @@ public final class ProducerSample {
   
   private static final String BOOTSTRAP_SERVERS = "localhost:9092";
   
-  private static Kafka<String, String> kafka = new KafkaCluster<>(new KafkaClusterConfig().withBootstrapServers(BOOTSTRAP_SERVERS));
+  private static final Kafka<String, String> kafka = new KafkaCluster<>(new KafkaClusterConfig().withBootstrapServers(BOOTSTRAP_SERVERS));
   
   public static void main(String[] args) throws InterruptedException, ExecutionException {
     final Properties props = new PropsBuilder()

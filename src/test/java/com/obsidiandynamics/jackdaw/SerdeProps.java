@@ -14,7 +14,7 @@ final class SerdeProps {
     final Class<? extends Serializer<?>> serializerClass;
     final Class<? extends Deserializer<?>> deserializerClass;
     
-    private SerdePair(Class<? extends Serializer<?>> serializerClass, 
+    SerdePair(Class<? extends Serializer<?>> serializerClass,
                       Class<? extends Deserializer<?>> deserializerClass) {
       this.serializerClass = serializerClass;
       this.deserializerClass = deserializerClass;

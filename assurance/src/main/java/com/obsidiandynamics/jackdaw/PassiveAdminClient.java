@@ -33,7 +33,7 @@ public final class PassiveAdminClient extends AdminClient {
   @Override
   public void close(Duration timeout) {}
   
-  private static <T, K> Map<K, KafkaFuture<Void>> complete(Collection<T> inputs, 
+  private static <T, K> Map<K, KafkaFuture<Void>> complete(Collection<T> inputs,
                                                            Function<? super T, ? extends K> keyExtractor) {
     return complete(inputs, keyExtractor, provideNull());
   }
@@ -56,11 +56,11 @@ public final class PassiveAdminClient extends AdminClient {
     return KafkaFuture.completedFuture(value);
   }
   
-  private static <R> Function<?, R> provideNull() {
+  private static <R> Function<Object, R> provideNull() {
     return provide(null);
   }
   
-  private static <R> Function<?, R> provide(R ret) {
+  private static <R> Function<Object, R> provide(R ret) {
     return __ -> ret;
   }
 
@@ -109,6 +109,7 @@ public final class PassiveAdminClient extends AdminClient {
     return new XDescribeConfigsResult(complete(resources, identity(), provide(new Config(emptySet()))));
   }
 
+  @Deprecated
   @Override
   public AlterConfigsResult alterConfigs(Map<ConfigResource, Config> configs, AlterConfigsOptions options) {
     return new XAlterConfigsResult(complete(configs.keySet(), identity(), provideNull()));
@@ -134,7 +135,8 @@ public final class PassiveAdminClient extends AdminClient {
   @Override
   public DescribeReplicaLogDirsResult describeReplicaLogDirs(Collection<TopicPartitionReplica> replicas,
                                                              DescribeReplicaLogDirsOptions options) {
-    return new XDescribeReplicaLogDirsResult(complete(replicas, identity(), provide(new XReplicaLogDirInfo("", 0, "", 0))));
+    return new XDescribeReplicaLogDirsResult(complete(replicas, identity(),
+                                                      provide(new XReplicaLogDirInfo("", 0, "", 0))));
   }
 
   @Override

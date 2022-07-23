@@ -42,6 +42,12 @@ allprojects {
   //TODO remove when Javadoc errors have been resolved
   javadoc.options.addStringOption('Xdoclint:none', '-quiet')
 
+  tasks.withType(JavaCompile) {
+    configure(options) {
+      options.compilerArgs << '-Xlint:deprecation' << '-Xlint:unchecked'
+    }
+  }
+
   repositories {
     mavenCentral()
     maven {

@@ -28,8 +28,8 @@ public final class ConsumerPipeConfigTest {
         .fromStream(ConsumerPipeConfigTest.class.getClassLoader().getResourceAsStream("consumerpipe.conf"))
         .map(ConsumerPipeConfig.class);
     config.validate();
-    
-    assertEquals(false, config.isAsync());
+
+    assertFalse(config.isAsync());
     assertEquals(16, config.getBacklogBatches());
     Assertions.assertToStringOverride(config);
   }

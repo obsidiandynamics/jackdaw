@@ -23,6 +23,6 @@ final class KeyedBlockingQueue<K, E> {
   }
 
   int totalSize() {
-    return map.values().stream().collect(Collectors.summingInt(q -> q.size())).intValue();
+    return map.values().stream().mapToInt(Collection::size).sum();
   }
 }

@@ -97,7 +97,7 @@ public final class KafkaAdminDockerIT {
         .with("max.in.flight.requests.per.connection", 1)
         .build();
     try (Producer<String, String> producer = kafkaCluster.getProducer(producerProps)) {
-      producer.send(new ProducerRecord<String, String>(TOPIC_A, "someMessage"));
+      producer.send(new ProducerRecord<>(TOPIC_A, "someMessage"));
     }
 
     final Properties consumerProps = new PropsBuilder()

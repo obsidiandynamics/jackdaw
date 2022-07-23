@@ -82,11 +82,10 @@ public final class PubSubSample {
     }
 
     private final AsyncReceiver<String, String> receiver;
-    private final Consumer<String, String> consumer;
-    
+
     SampleSubscriber() {
-      consumer = kafka.getConsumer(getProps());
-      consumer.subscribe(Arrays.asList(TOPIC));
+      final Consumer<String, String> consumer = kafka.getConsumer(getProps());
+      consumer.subscribe(Collections.singletonList(TOPIC));
       receiver = new AsyncReceiver<>(consumer, 100, SampleSubscriber.class.getSimpleName(), this::onReceive, this::onError);
     }
     

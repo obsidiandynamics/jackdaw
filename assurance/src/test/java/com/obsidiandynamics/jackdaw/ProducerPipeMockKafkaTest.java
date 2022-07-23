@@ -52,7 +52,7 @@ public final class ProducerPipeMockKafkaTest {
     pipe = new ProducerPipe<>(new ProducerPipeConfig().withAsync(true), producer, ProducerPipe.class.getSimpleName(), eh);
 
     final Consumer<String, String> consumer = kafka.getConsumer(props.consumer());
-    consumer.subscribe(Arrays.asList("test"));
+    consumer.subscribe(Collections.singletonList("test"));
     final String msg = "B100";
     final ProducerRecord<String, String> rec = new ProducerRecord<>("test", msg);
     Threads.sleep(50); // give the thread an opportunity to yield and sleep
@@ -72,7 +72,7 @@ public final class ProducerPipeMockKafkaTest {
     pipe = new ProducerPipe<>(new ProducerPipeConfig().withAsync(false), producer, ProducerPipe.class.getSimpleName(), eh);
 
     final Consumer<String, String> consumer = kafka.getConsumer(props.consumer());
-    consumer.subscribe(Arrays.asList("test"));
+    consumer.subscribe(Collections.singletonList("test"));
     final String msg = "B100";
     final ProducerRecord<String, String> rec = new ProducerRecord<>("test", msg);
     pipe.send(rec, null);

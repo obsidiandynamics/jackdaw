@@ -1,6 +1,7 @@
 package com.obsidiandynamics.jackdaw.sample;
 
 import java.io.*;
+import java.nio.file.*;
 import java.util.*;
 
 import org.apache.kafka.clients.producer.*;
@@ -13,7 +14,7 @@ public class YConfSample {
   public static void main(String[] args) throws IOException {
     final Kafka<?, ?> kafka = new MappingContext()
         .withParser(new SnakeyamlParser())
-        .fromStream(new FileInputStream("src/test/resources/kafka-cluster.conf"))
+        .fromStream(Files.newInputStream(Paths.get("src/test/resources/kafka-cluster.conf")))
         .map(Kafka.class);
     
     // default properties

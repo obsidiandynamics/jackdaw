@@ -17,7 +17,7 @@ public final class InstaclustrProducerSample {
   
   private static final String BOOTSTRAP_SERVERS = "x.x.x.x:9092";
   
-  private static Kafka<String, String> kafka = new KafkaCluster<>(new KafkaClusterConfig()
+  private static final Kafka<String, String> kafka = new KafkaCluster<>(new KafkaClusterConfig()
       .withBootstrapServers(BOOTSTRAP_SERVERS)
       .withCommonProps(new PropsBuilder()
                        .with("security.protocol", "SASL_SSL")

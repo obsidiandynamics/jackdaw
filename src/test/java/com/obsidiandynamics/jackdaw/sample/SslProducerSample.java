@@ -16,7 +16,7 @@ public final class SslProducerSample {
   
   private static final String BOOTSTRAP_SERVERS = "localhost:9093";
   
-  private static Kafka<String, String> kafka = new KafkaCluster<>(new KafkaClusterConfig()
+  private static final Kafka<String, String> kafka = new KafkaCluster<>(new KafkaClusterConfig()
       .withBootstrapServers(BOOTSTRAP_SERVERS)
       .withCommonProps(new PropsBuilder()
         .with("security.protocol", "SSL")

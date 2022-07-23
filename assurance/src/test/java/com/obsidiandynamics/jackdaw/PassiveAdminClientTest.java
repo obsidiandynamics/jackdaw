@@ -53,7 +53,7 @@ public final class PassiveAdminClientTest {
 
   @Test
   public void testDescribeTopics() throws Exception {
-    final List<String> topicNames = asList("topic");
+    final List<String> topicNames = singletonList("topic");
     Assertions.assertThat(adminClient.describeTopics(topicNames).values().keySet()).containsAll(topicNames);
   }
 
@@ -69,8 +69,8 @@ public final class PassiveAdminClientTest {
 
   @Test
   public void testCreateAcls() throws Exception {
-    final List<AclBinding> bindings = asList(new AclBinding(new ResourcePattern(ResourceType.CLUSTER, "name", PatternType.LITERAL), 
-                                                            new AccessControlEntry("principal", "host", AclOperation.ALL, AclPermissionType.ALLOW)));
+    final List<AclBinding> bindings = singletonList(new AclBinding(new ResourcePattern(ResourceType.CLUSTER, "name", PatternType.LITERAL),
+                                                                   new AccessControlEntry("principal", "host", AclOperation.ALL, AclPermissionType.ALLOW)));
     Assertions.assertThat(adminClient.createAcls(bindings).values().keySet()).containsAll(bindings);
   }
 
@@ -84,6 +84,7 @@ public final class PassiveAdminClientTest {
     assertEquals(emptyMap(), adminClient.describeConfigs(emptySet()).values());
   }
 
+  @SuppressWarnings("deprecation")
   @Test
   public void testAlterConfigs() throws Exception {
     assertEquals(emptyMap(), adminClient.alterConfigs(emptyMap(), new AlterConfigsOptions()).values());
@@ -121,7 +122,7 @@ public final class PassiveAdminClientTest {
 
   @Test
   public void testCreateDelegationToken() throws Exception {
-    assertEquals(null, adminClient.createDelegationToken().delegationToken().get());
+    assertNull(adminClient.createDelegationToken().delegationToken().get());
   }
 
   @Test
@@ -141,7 +142,7 @@ public final class PassiveAdminClientTest {
 
   @Test
   public void testDescribeConsumerGroups() throws Exception {
-    final List<String> groupIds = asList("group");
+    final List<String> groupIds = singletonList("group");
     Assertions.assertThat(adminClient.describeConsumerGroups(groupIds).describedGroups().keySet()).containsAll(groupIds);
   }
 

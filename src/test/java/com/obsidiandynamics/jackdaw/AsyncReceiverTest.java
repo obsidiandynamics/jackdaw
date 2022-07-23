@@ -71,12 +71,12 @@ public final class AsyncReceiverTest {
   @Test
   public void testReceive() {
     final Map<TopicPartition, List<ConsumerRecord<String, String>>> recordsMap = 
-        Collections.singletonMap(new TopicPartition("test", 0), Arrays.asList(new ConsumerRecord<>("test", 0, 0, "key", "value")));
+        Collections.singletonMap(new TopicPartition("test", 0), Collections.singletonList(new ConsumerRecord<>("test", 0, 0, "key", "value")));
     final ConsumerRecords<String, String> records = new ConsumerRecords<>(recordsMap);
     
     when(consumer.poll(any())).then(split(() -> records, 
                                           () -> new ConsumerRecords<>(Collections.emptyMap())));
-    receiver = new AsyncReceiver<String, String>(consumer, 1, "TestThread", recordHandler, exceptionHandler);
+    receiver = new AsyncReceiver<>(consumer, 1, "TestThread", recordHandler, exceptionHandler);
     wait.until(() -> {
       try {
         verify(recordHandler, times(1)).onReceive(eq(records));
@@ -95,7 +95,7 @@ public final class AsyncReceiverTest {
     
     when(consumer.poll(any(Duration.class))).then(split(() -> records, 
                                                         () -> new ConsumerRecords<>(Collections.emptyMap())));
-    receiver = new AsyncReceiver<String, String>(consumer, 1, "TestThread", recordHandler, exceptionHandler);
+    receiver = new AsyncReceiver<>(consumer, 1, "TestThread", recordHandler, exceptionHandler);
     
     wait.until(() -> {
       try {
@@ -110,7 +110,7 @@ public final class AsyncReceiverTest {
   @Test
   public void testInterrupt() throws InterruptedException {
     when(consumer.poll(any())).then(split(() -> { throw createInterruptException(); }));
-    receiver = new AsyncReceiver<String, String>(consumer, 1, "TestThread", recordHandler, exceptionHandler);
+    receiver = new AsyncReceiver<>(consumer, 1, "TestThread", recordHandler, exceptionHandler);
     verify(recordHandler, never()).onReceive(any());
     verify(exceptionHandler, never()).onException(any(), any());
     receiver.join();
@@ -120,7 +120,7 @@ public final class AsyncReceiverTest {
   public void testError() throws InterruptedException {
     final RuntimeException cause = new RuntimeException("boom");
     when(consumer.poll(any())).then(split(() -> { throw cause; }));
-    receiver = new AsyncReceiver<String, String>(consumer, 1, "TestThread", recordHandler, exceptionHandler);
+    receiver = new AsyncReceiver<>(consumer, 1, "TestThread", recordHandler, exceptionHandler);
     wait.until(() -> {
       try {
         verify(recordHandler, never()).onReceive(any());

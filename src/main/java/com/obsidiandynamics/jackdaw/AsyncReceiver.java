@@ -46,7 +46,6 @@ public final class AsyncReceiver<K, V> implements Terminable, Joinable {
       throw new InterruptedException("Converted from " + org.apache.kafka.common.errors.InterruptException.class.getName());
     } catch (Throwable e) {
       exceptionHandlerHandler.onException("Unexpected error", e);
-      return;
     }
   }
   

@@ -118,7 +118,7 @@ public final class KafkaAdmin implements AutoCloseable {
    */
   public DescribeClusterOutcome describeCluster(int timeoutMillis) throws ExecutionException, TimeoutException, InterruptedException {
     return runWithRetry(() -> {
-      final DescribeClusterResult result = admin.describeCluster(new DescribeClusterOptions().timeoutMs((int) timeoutMillis));
+      final DescribeClusterResult result = admin.describeCluster(new DescribeClusterOptions().timeoutMs(timeoutMillis));
       awaitFutures(timeoutMillis, result.nodes(), result.controller(), result.clusterId());
       return new DescribeClusterOutcome(result.nodes().get(), result.controller().get(), result.clusterId().get());
     });
