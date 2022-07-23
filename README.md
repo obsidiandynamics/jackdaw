@@ -2,10 +2,10 @@
 ===
 Simple configuration and mocking of Kafka clients.
 
-[![Download](https://api.bintray.com/packages/obsidiandynamics/jackdaw/jackdaw-core/images/download.svg) ](https://bintray.com/obsidiandynamics/jackdaw/jackdaw-core/_latestVersion)
-[![Build](https://travis-ci.org/obsidiandynamics/jackdaw.svg?branch=master) ](https://travis-ci.org/obsidiandynamics/jackdaw#)
+[![Maven release](https://img.shields.io/maven-metadata/v.svg?color=blue&label=maven-central&metadataUrl=https%3A%2F%2Frepo1.maven.org%2Fmaven2%2Fcom%2Fobsidiandynamics%2Fjackdaw%2Fjackdaw-core%2Fmaven-metadata.xml)](https://mvnrepository.com/artifact/com.obsidiandynamics.jackdaw)
+[![Total alerts](https://img.shields.io/lgtm/alerts/g/obsidiandynamics/jackdaw.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/obsidiandynamics/jackdaw/alerts/)
+[![Gradle build](https://github.com/obsidiandynamics/jackdaw/actions/workflows/master.yml/badge.svg)](https://github.com/obsidiandynamics/jackdaw/actions/workflows/master.yml)
 [![codecov](https://codecov.io/gh/obsidiandynamics/jackdaw/branch/master/graph/badge.svg)](https://codecov.io/gh/obsidiandynamics/jackdaw)
-[![Language grade: Java](https://img.shields.io/lgtm/grade/java/g/obsidiandynamics/jackdaw.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/obsidiandynamics/jackdaw/context:java)
 
 # Why Jackdaw?
 While Kafka is an awesome message streaming platform, it's also a little on the heavy side — requiring a cluster of brokers at all times. This makes rapid development and component/integration testing harder than it should be; firstly, you must have access to a broker; secondly, connection establishment and topic consumer rebalancing times can be substantial, blowing out the build/test times. If only you could simulate the entire Kafka infrastructure in a JVM so that messages can be published and consumed without relying on Kafka... After all, you just want to know that _your_ application components integrate correctly; you aren't trying to test Kafka.
@@ -19,12 +19,12 @@ Jackdaw also makes the Java clients a little nicer to use, without obfuscating t
 Bootstrapping is also simplified. Jackdaw offers [YConf](https://github.com/obsidiandynamics/yconf)-ready wrappers for configuring most aspects of the client.
 
 # Dependencies
-Gradle builds are hosted on JCenter. Add the following snippet to your build file, replacing `x.y.z` with the version shown on the Download badge at the top of this README.
+Add the following snippet to your build file, replacing `x.y.z` with the version shown on the Download badge at the top of this README.
 
 ```groovy
-compile "com.obsidiandynamics.jackdaw:jackdaw-core:x.y.z"
-compile "org.apache.kafka:kafka-clients:2.0.0"
-testCompile "com.obsidiandynamics.jackdaw:jackdaw-assurance:x.y.z"
+api "com.obsidiandynamics.jackdaw:jackdaw-core:x.y.z"
+api "org.apache.kafka:kafka-clients:2.0.0"
+testImplementation "com.obsidiandynamics.jackdaw:jackdaw-assurance:x.y.z"
 ```
 
 **Note:** Although Jackdaw is compiled against Kafka client 2.0.0, no specific Kafka client library dependency has been bundled with Jackdaw. This allows you to use any (2.x.x) API-compatible Kafka client library in your application without being constrained by transitive dependencies.
