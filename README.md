@@ -32,7 +32,7 @@ testImplementation "com.obsidiandynamics.jackdaw:jackdaw-assurance:x.y.z"
 Jackdaw is packaged as two separate modules:
 
 1. `jackdaw-core` — Configuration (YConf) support and other core Jackdaw elements. This module would typically be linked to your production build artifacts.
-2. `jackdaw-assurance` — Mocking components and test utilities. Normally, this module would only be used during testing and should be declared in the `testCompile` configuration.
+2. `jackdaw-assurance` — Mocking components and test utilities. Normally, this module would only be used during testing and should be declared in the `testImplementation` configuration.
 
 # Scenarios
 ## Configuring a real Kafka client connection
@@ -41,7 +41,7 @@ The following snippet publishes a message and consumes it using a real Kafka con
 ```java
 final Zlg zlg = Zlg.forDeclaringClass().get();
 final Kafka<String, String> kafka = new KafkaCluster<>(new KafkaClusterConfig()
-                                                       .withBootstrapServers("localhost:9092"));
+                                                      .withBootstrapServers("localhost:9092"));
 
 final Properties producerProps = new PropsBuilder()
     .with("key.serializer", StringSerializer.class.getName())
