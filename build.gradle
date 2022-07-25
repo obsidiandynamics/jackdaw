@@ -67,15 +67,15 @@ allprojects {
   ext {
     assertjVersion = "3.13.2"
     equalsverifierVersion = "3.1.9"
-    fulcrumVersion = "0.37.0"
+    fulcrumVersion = "0.38.0"
     junitVersion = "4.12"
     kafkaVersion = "2.3.0"
     log4jVersion = "1.2.17"
     mockitoVersion = "4.6.1"
     pojotesterVersion = "0.9.0"
     slf4jVersion = "1.7.25"
-    yconfVersion = "0.21.0"
-    zerologVersion = "0.31.0"
+    yconfVersion = "0.22.0"
+    zerologVersion = "0.32.0"
   }
   
   dependencies {
